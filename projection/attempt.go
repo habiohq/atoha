@@ -21,7 +21,10 @@ type Attempt struct {
 	dispatch     habio.DispatchStatus
 	effect       habio.EffectStatus
 	verification habio.VerificationStatus
-	conflicted   bool
+
+	admissionConflicted bool
+	dispatchConflicted  bool
+	effectConflicted    bool
 }
 
 // NewAttempt creates an empty, fully unknown view.
@@ -45,7 +48,7 @@ func (p *Attempt) Apply(event habio.ExecutionEvent) error {
 	}
 
 	switch event.Kind() {
-	case habio.EventActionRequested, habio.EventAttemptStarted, habio.EventObservationRecorded:
+	case habio.EventActionRequested, habio.EventAttemptStarted, habio.EventRecoveryAuthorized, habio.EventObservationRecorded:
 	case habio.EventActionAdmitted:
 		p.mergeAdmission(habio.AdmissionAdmitted)
 	case habio.EventActionRejected:
@@ -88,18 +91,36 @@ func (p *Attempt) Outcome() habio.Outcome {
 
 func (p *Attempt) Verification() habio.VerificationStatus { return p.verification }
 
-func (p *Attempt) Conflicted() bool { return p.conflicted }
+// Conflicted reports whether any outcome dimension contains incompatible facts.
+func (p *Attempt) Conflicted() bool {
+	return p.admissionConflicted || p.dispatchConflicted || p.effectConflicted
+}
+
+// AdmissionConflicted reports whether admission contains incompatible facts.
+func (p *Attempt) AdmissionConflicted() bool { return p.admissionConflicted }
+
+// DispatchConflicted reports whether dispatch contains incompatible facts.
+func (p *Attempt) DispatchConflicted() bool { return p.dispatchConflicted }
+
+// EffectConflicted reports whether effect contains incompatible facts.
+func (p *Attempt) EffectConflicted() bool { return p.effectConflicted }
 
 func (p *Attempt) mergeAdmission(next habio.AdmissionStatus) {
+	if p.admissionConflicted {
+		return
+	}
 	if p.admission == habio.AdmissionUnknown || p.admission == next {
 		p.admission = next
 		return
 	}
 	p.admission = habio.AdmissionUnknown
-	p.conflicted = true
+	p.admissionConflicted = true
 }
 
 func (p *Attempt) mergeDispatch(next habio.DispatchStatus) {
+	if p.dispatchConflicted {
+		return
+	}
 	if p.dispatch == habio.DispatchUnknown || p.dispatch == next {
 		p.dispatch = next
 		return
@@ -112,10 +133,13 @@ func (p *Attempt) mergeDispatch(next habio.DispatchStatus) {
 		return
 	}
 	p.dispatch = habio.DispatchUnknown
-	p.conflicted = true
+	p.dispatchConflicted = true
 }
 
 func (p *Attempt) mergeEffect(next habio.EffectStatus) {
+	if p.effectConflicted {
+		return
+	}
 	if p.effect == habio.EffectUnknown || p.effect == next || p.effect == habio.EffectUnverified {
 		p.effect = next
 		return
@@ -124,5 +148,5 @@ func (p *Attempt) mergeEffect(next habio.EffectStatus) {
 		return
 	}
 	p.effect = habio.EffectUnknown
-	p.conflicted = true
+	p.effectConflicted = true
 }

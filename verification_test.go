@@ -68,6 +68,8 @@ func TestNewVerificationResultRejectsInvalidSpecs(t *testing.T) {
 		{Status: VerificationUnknown, Verifier: "claimed-verifier"},
 		{Status: VerificationVerified, CheckedAt: now},
 		{Status: VerificationVerified, Verifier: "verifier-v1"},
+		{Status: VerificationVerified, Verifier: "verifier-v1", CheckedAt: now},
+		{Status: VerificationUnsatisfied, Verifier: "verifier-v1", CheckedAt: now},
 		{Status: VerificationVerified, Verifier: "verifier-v1", CheckedAt: now, ObservationIDs: []ObservationID{""}},
 	}
 	for _, spec := range tests {

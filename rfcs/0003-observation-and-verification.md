@@ -32,7 +32,9 @@ time and decides whether evidence is fresh enough.
 VerificationResult is unknown, verified, unsatisfied, or inconclusive. A
 non-unknown result records verifier identity, check time, observation IDs, and
 a diagnostic reason. Inconclusive covers missing, stale, contradictory, or
-otherwise insufficient evidence. Reason is not a control-flow API.
+otherwise insufficient evidence and may therefore have no observation IDs.
+Verified and unsatisfied results require at least one supporting observation
+ID. Reason is not a control-flow API.
 
 Verifier is a one-method extension contract. Concrete comparison, tolerance,
 safety, and freshness policy stays outside core.

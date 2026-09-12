@@ -150,6 +150,9 @@ func (r DispatchResult) Receipt() (Receipt, bool) { return r.receipt, r.hasRecei
 // A non-nil error describes the software path, not the physical outcome.
 // DispatchResult must retain any evidence known when the call returns. Context
 // cancellation does not imply that a physical operation was cancelled.
+// Implementations must reject an attempt whose ActionID does not match the
+// supplied Action and must validate that target was resolved for that Action
+// before performing external I/O.
 type Provider interface {
 	Dispatch(ctx context.Context, attempt ExecutionAttempt, action Action, target ResolvedTarget) (DispatchResult, error)
 }
@@ -167,6 +170,8 @@ type Admitter interface {
 }
 
 // Observer obtains physical/provider evidence independently of dispatch.
+// Implementations must validate that target was resolved for the supplied
+// Action before obtaining or labeling evidence.
 type Observer interface {
 	Observe(ctx context.Context, action Action, target ResolvedTarget) ([]Observation, error)
 }

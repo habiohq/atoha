@@ -73,8 +73,9 @@ Claude / ChatGPT / custom agent
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for component and repository boundaries,
-[DESIGN.md](DESIGN.md) for the semantic model and design principles, and
-[docs/v0.1-scope.md](docs/v0.1-scope.md) for the executable acceptance matrix.
+[DESIGN.md](DESIGN.md) for the semantic model, [docs/runtime-api.md](docs/runtime-api.md)
+for local server usage, and [docs/v0.1-scope.md](docs/v0.1-scope.md) for the
+executable acceptance matrix.
 
 ## Design principles
 
@@ -94,10 +95,11 @@ The ecosystem succeeds when it can grow without growing the core.
 
 ## Status
 
-Habio is in its foundation phase. This repository currently establishes project
-scope, experimental execution contracts, and a Home Assistant proof of concept.
+Habio is in its foundation phase. The repository includes provider-independent
+core contracts, application use cases, memory and SQLite Journals, a strict HTTP
+adapter, a local server composition root, and a Home Assistant proof of concept.
 The public API is not yet stable. The proof exercises light, climate, and
-media-player actions without adding those device types to the core; see
+media-player actions without adding those device types to core; see
 [docs/home-assistant-poc.md](docs/home-assistant-poc.md).
 
 ## License

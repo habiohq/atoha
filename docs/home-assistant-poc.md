@@ -6,6 +6,10 @@ The `provider/homeassistant` package tests Habio's execution semantics against
 Home Assistant without making Home Assistant part of core. It is intentionally
 a proof, not a production integration or device model.
 
+Internally it is an anti-corruption layer: `Provider` is the Habio-facing
+facade, `translator.go` owns entity/service conversion and binding validation,
+and `client.go` owns Home Assistant REST DTOs and transport behavior.
+
 The implementation follows Home Assistant's documented REST endpoints:
 
 - `POST /api/services/<domain>/<service>` calls a service action and returns
@@ -56,7 +60,15 @@ Habio core.
 | Home Assistant returns 2xx | Acknowledged with receipt | Unverified until observation |
 
 The provider performs no automatic retry. A timeout after handing the request
-to the HTTP client remains ambiguous.
+to the HTTP client remains ambiguous. A 2xx status remains acknowledged even if
+the response body cannot be read or exceeds the retention limit; the receipt
+keeps every body byte available within that limit and the body problem is
+returned separately as a Go error.
+
+Before any HTTP request, Dispatch rejects an attempt belonging to another
+Action. Dispatch and Observe also revalidate the resolved entity against the
+Action's configured binding so that independently supplied values cannot be
+swapped or forged into a different physical target.
 
 ## Observation and verification
 
@@ -73,6 +85,9 @@ independent source.
 The package needs only a local Home Assistant base URL and token. It has no
 Habio Cloud endpoint, account, or network dependency beyond the configured Home
 Assistant instance.
+
+The runnable composition root is `cmd/habio-server`; configuration and request
+examples are documented in [runtime-api.md](runtime-api.md).
 
 The implementation remains in this repository during semantic discovery. It
 should move only when its dependency/release cycle is independent enough to

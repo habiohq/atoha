@@ -61,6 +61,57 @@ func TestAttemptMakesContradictoryDispatchUnknown(t *testing.T) {
 	}
 }
 
+func TestAttemptKeepsConflictedDimensionsUnknown(t *testing.T) {
+	tests := []struct {
+		name       string
+		kinds      []habio.EventKind
+		got        func(habio.Outcome) string
+		conflicted func(*Attempt) bool
+		want       string
+	}{
+		{
+			name:  "admission",
+			kinds: []habio.EventKind{habio.EventActionAdmitted, habio.EventActionRejected, habio.EventActionAdmitted},
+			got:   func(outcome habio.Outcome) string { return outcome.Admission().String() },
+			conflicted: func(view *Attempt) bool {
+				return view.AdmissionConflicted() && !view.DispatchConflicted() && !view.EffectConflicted()
+			},
+			want: habio.AdmissionUnknown.String(),
+		},
+		{
+			name:  "dispatch",
+			kinds: []habio.EventKind{habio.EventNotDispatched, habio.EventProviderAcknowledged, habio.EventActionDispatched},
+			got:   func(outcome habio.Outcome) string { return outcome.Dispatch().String() },
+			conflicted: func(view *Attempt) bool {
+				return !view.AdmissionConflicted() && view.DispatchConflicted() && !view.EffectConflicted()
+			},
+			want: habio.DispatchUnknown.String(),
+		},
+		{
+			name:  "effect",
+			kinds: []habio.EventKind{habio.EventEffectObservedSatisfied, habio.EventEffectObservedUnsatisfied, habio.EventEffectObservedSatisfied},
+			got:   func(outcome habio.Outcome) string { return outcome.Effect().String() },
+			conflicted: func(view *Attempt) bool {
+				return !view.AdmissionConflicted() && !view.DispatchConflicted() && view.EffectConflicted()
+			},
+			want: habio.EffectUnknown.String(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			view, _ := NewAttempt("action-1", "attempt-1")
+			for i, kind := range tt.kinds {
+				if err := view.Apply(event(t, i, kind)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if got := tt.got(view.Outcome()); got != tt.want || !view.Conflicted() || !tt.conflicted(view) {
+				t.Fatalf("value=%s conflicted=%v; want %s conflict", got, view.Conflicted(), tt.want)
+			}
+		})
+	}
+}
+
 func TestAttemptRejectsUnrelatedEvents(t *testing.T) {
 	view, _ := NewAttempt("action-1", "attempt-1")
 	e := event(t, 1, habio.EventAttemptStarted)
