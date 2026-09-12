@@ -17,6 +17,7 @@ import (
 func TestDispatchLightClimateAndMediaPlayerActions(t *testing.T) {
 	var requests atomic.Int32
 	var paths []string
+	var bodies []map[string]any
 	client := &http.Client{Transport: roundTripperFunc(func(r *http.Request) (*http.Response, error) {
 		requests.Add(1)
 		paths = append(paths, r.URL.Path)
@@ -27,9 +28,7 @@ func TestDispatchLightClimateAndMediaPlayerActions(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Error(err)
 		}
-		if body["entity_id"] == "" {
-			t.Error("request has no resolved entity_id")
-		}
+		bodies = append(bodies, body)
 		return response(http.StatusOK, `[]`), nil
 	})}
 
@@ -43,11 +42,12 @@ func TestDispatchLightClimateAndMediaPlayerActions(t *testing.T) {
 		},
 	})
 	tests := []struct {
-		target, name, input, path string
+		target, name, input, path, entityID string
+		wantTemperature                     bool
 	}{
-		{"living-room-light", "turn_on", `{}`, "/api/services/light/turn_on"},
-		{"living-room-climate", "set_temperature", `{"temperature":24}`, "/api/services/climate/set_temperature"},
-		{"living-room-tv", "turn_off", `{}`, "/api/services/media_player/turn_off"},
+		{"living-room-light", "turn_on", `{}`, "/api/services/light/turn_on", "light.living_room", false},
+		{"living-room-climate", "set_temperature", `{"temperature":24}`, "/api/services/climate/set_temperature", "climate.living_room", true},
+		{"living-room-tv", "turn_off", `{}`, "/api/services/media_player/turn_off", "media_player.living_room_tv", false},
 	}
 
 	for i, tt := range tests {
@@ -76,6 +76,122 @@ func TestDispatchLightClimateAndMediaPlayerActions(t *testing.T) {
 		if paths[i] != tt.path {
 			t.Errorf("request %d path = %q; want %q", i, paths[i], tt.path)
 		}
+		entityID, ok := bodies[i]["entity_id"].(string)
+		if !ok || entityID != tt.entityID {
+			t.Errorf("request %d entity_id = %#v; want %q", i, bodies[i]["entity_id"], tt.entityID)
+		}
+		if tt.wantTemperature && bodies[i]["temperature"] != float64(24) {
+			t.Errorf("request %d temperature = %#v; want 24", i, bodies[i]["temperature"])
+		}
+	}
+}
+
+func TestDispatchAndObserveRejectMismatchedIdentityBeforeHTTP(t *testing.T) {
+	var calls atomic.Int32
+	client := &http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		calls.Add(1)
+		return response(http.StatusOK, `[]`), nil
+	})}
+	now := time.Date(2026, time.September, 6, 12, 0, 0, 0, time.UTC)
+	provider := mustProvider(t, Config{
+		BaseURL: "http://home-assistant.local:8123", Token: "test-token", Client: client,
+		Bindings: map[string]string{
+			"living-room-light": "light.living_room",
+			"bedroom-light":     "light.bedroom",
+		},
+	})
+	livingAction, livingAttempt := actionAttempt(t, 1, "living-room-light", "turn_off", `{}`, now)
+	bedroomAction, bedroomAttempt := actionAttempt(t, 2, "bedroom-light", "turn_off", `{}`, now)
+	livingTarget, err := provider.Resolve(context.Background(), livingAction)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bedroomTarget, err := provider.Resolve(context.Background(), bedroomAction)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("attempt belongs to another action", func(t *testing.T) {
+		result, err := provider.Dispatch(context.Background(), bedroomAttempt, livingAction, livingTarget)
+		if !errors.Is(err, ErrAttemptMismatch) {
+			t.Fatalf("Dispatch() error = %v; want ErrAttemptMismatch", err)
+		}
+		if result.Status() != habio.DispatchNotDispatched {
+			t.Fatalf("Status() = %v; want not dispatched", result.Status())
+		}
+	})
+
+	t.Run("target belongs to another action", func(t *testing.T) {
+		result, err := provider.Dispatch(context.Background(), livingAttempt, livingAction, bedroomTarget)
+		if !errors.Is(err, ErrTargetMismatch) {
+			t.Fatalf("Dispatch() error = %v; want ErrTargetMismatch", err)
+		}
+		if result.Status() != habio.DispatchNotDispatched {
+			t.Fatalf("Status() = %v; want not dispatched", result.Status())
+		}
+	})
+
+	t.Run("observation target belongs to another action", func(t *testing.T) {
+		if _, err := provider.Observe(context.Background(), livingAction, bedroomTarget); !errors.Is(err, ErrTargetMismatch) {
+			t.Fatalf("Observe() error = %v; want ErrTargetMismatch", err)
+		}
+	})
+
+	if calls.Load() != 0 {
+		t.Fatalf("HTTP call count = %d; mismatches must be rejected before I/O", calls.Load())
+	}
+}
+
+func TestDispatchRetainsAcknowledgementWhenResponseBodyCannotBeRetained(t *testing.T) {
+	readErr := errors.New("fixture: response body read failed")
+	tests := []struct {
+		name            string
+		body            io.ReadCloser
+		wantErr         error
+		wantEvidenceLen int
+	}{
+		{
+			name: "read failure", body: io.NopCloser(io.MultiReader(strings.NewReader("partial"), errorReader{err: readErr})),
+			wantErr: readErr, wantEvidenceLen: len("partial"),
+		},
+		{
+			name: "too large", body: io.NopCloser(strings.NewReader(strings.Repeat("x", maxResponseSize+1))),
+			wantErr: ErrResponseTooLarge, wantEvidenceLen: maxResponseSize,
+		},
+	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK, Status: http.StatusText(http.StatusOK),
+					Header: make(http.Header), Body: tt.body,
+				}, nil
+			})}
+			now := time.Date(2026, time.September, 6, 12, 0, i, 0, time.UTC)
+			provider := mustProvider(t, Config{
+				BaseURL: "http://home-assistant.local:8123", Token: "test-token", Client: client,
+				Now: func() time.Time { return now }, Bindings: map[string]string{"living-room-light": "light.living_room"},
+			})
+			action, attempt := actionAttempt(t, i, "living-room-light", "turn_on", `{}`, now)
+			target, err := provider.Resolve(context.Background(), action)
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := provider.Dispatch(context.Background(), attempt, action, target)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("Dispatch() error = %v; want %v", err, tt.wantErr)
+			}
+			if result.Status() != habio.DispatchAcknowledged {
+				t.Fatalf("Status() = %v; want acknowledged", result.Status())
+			}
+			receipt, ok := result.Receipt()
+			if !ok {
+				t.Fatal("acknowledgement evidence was lost")
+			}
+			if got := len(receipt.Evidence()); got != tt.wantEvidenceLen {
+				t.Fatalf("Receipt evidence length = %d; want %d retained bytes", got, tt.wantEvidenceLen)
+			}
+		})
 	}
 }
 
@@ -227,6 +343,10 @@ func mustProvider(t *testing.T, config Config) *Provider {
 type roundTripperFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
+
+type errorReader struct{ err error }
+
+func (r errorReader) Read([]byte) (int, error) { return 0, r.err }
 
 func response(status int, body string) *http.Response {
 	return &http.Response{

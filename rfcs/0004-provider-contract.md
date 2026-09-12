@@ -23,6 +23,10 @@ dispatch one attempt and retain what is known when the call returns.
 `Provider.Dispatch` accepts context, immutable ExecutionAttempt and Action, and
 an opaque ResolvedTarget. It returns DispatchResult and error. Context controls
 the software wait; cancellation does not assert physical cancellation.
+Before external I/O, a Provider must reject an ExecutionAttempt whose ActionID
+does not match the Action. A provider-specific implementation must also verify
+that ResolvedTarget is valid for that Action rather than trusting a caller to
+keep independently supplied values paired correctly.
 
 DispatchResult identifies provider and attempt and carries DispatchStatus. An
 acknowledged result requires a matching Receipt. Receipt contains provider,

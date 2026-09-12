@@ -16,6 +16,7 @@ type EventKind string
 const (
 	EventActionRequested           EventKind = "action-requested"
 	EventAttemptStarted            EventKind = "attempt-started"
+	EventRecoveryAuthorized        EventKind = "recovery-authorized"
 	EventActionAdmitted            EventKind = "action-admitted"
 	EventActionRejected            EventKind = "action-rejected"
 	EventDispatchUnknown           EventKind = "dispatch-unknown"
@@ -116,6 +117,7 @@ func (k EventKind) valid() bool {
 	switch k {
 	case EventActionRequested,
 		EventAttemptStarted,
+		EventRecoveryAuthorized,
 		EventActionAdmitted,
 		EventActionRejected,
 		EventDispatchUnknown,

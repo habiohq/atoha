@@ -1,5 +1,11 @@
 # Foundation roadmap
 
+Implementation status (2026-09-12): the foundation sequence is executable.
+Core semantics, separate application use cases, Home Assistant ACL, a durable
+SQLite Journal, HTTP adapter, local composition root, and dependency checks are
+implemented. MCP packaging and independent repository extraction remain later
+release-boundary decisions.
+
 This sequence targets the first one to two weeks. Calendar time is indicative;
 semantic evidence, not task count, determines readiness.
 
@@ -48,5 +54,6 @@ and unknown cases without adding Home Assistant or device concepts to core.
 ## Deferred
 
 MCP packaging, out-of-process provider protocols, registries, strategy runtime,
-marketplace, cloud sync, dynamic plugins, and a full event store wait for their
-own evidence and RFCs.
+marketplace, cloud sync, dynamic plugins, and a distributed/full event platform
+wait for their own evidence and RFCs. The local SQLite Journal is intentionally
+smaller than that deferred platform.

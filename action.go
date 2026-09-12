@@ -20,6 +20,9 @@ var (
 	// ErrInvalidExecutionAttempt indicates that an ExecutionAttemptSpec cannot
 	// define an ExecutionAttempt.
 	ErrInvalidExecutionAttempt = errors.New("habio: invalid execution attempt")
+	// ErrActionIdentityConflict means an existing ActionID was presented with
+	// different immutable intent.
+	ErrActionIdentityConflict = errors.New("habio: action identity conflict")
 )
 
 // ActionSpec contains the caller-supplied data needed to create an Action.

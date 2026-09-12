@@ -47,8 +47,9 @@ type VerificationResult struct {
 }
 
 // NewVerificationResult validates spec. A non-unknown result names the
-// Verifier and evaluation time. ObservationIDs may be empty for an
-// inconclusive result caused by missing evidence.
+// Verifier and evaluation time. Verified and unsatisfied results require at
+// least one ObservationID; an inconclusive result may be caused by missing
+// evidence and therefore have none.
 func NewVerificationResult(spec VerificationResultSpec) (VerificationResult, error) {
 	if !spec.Status.valid() {
 		return VerificationResult{}, fmt.Errorf("%w: status %d", ErrInvalidVerification, spec.Status)
@@ -64,6 +65,9 @@ func NewVerificationResult(spec VerificationResultSpec) (VerificationResult, err
 	}
 	if spec.CheckedAt.IsZero() {
 		return VerificationResult{}, fmt.Errorf("%w: checked time is required", ErrInvalidVerification)
+	}
+	if (spec.Status == VerificationVerified || spec.Status == VerificationUnsatisfied) && len(spec.ObservationIDs) == 0 {
+		return VerificationResult{}, fmt.Errorf("%w: %s result requires observation evidence", ErrInvalidVerification, spec.Status)
 	}
 	for _, id := range spec.ObservationIDs {
 		if err := validateIdentity("observation ID", string(id)); err != nil {

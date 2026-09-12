@@ -34,7 +34,9 @@ The reference Attempt projection consumes canonical replay order. Weaker late
 dispatch evidence does not replace stronger evidence. Incompatible admission,
 dispatch, or effect claims mark the view conflicted and return that dimension
 to unknown rather than inventing certainty. All original facts remain in the
-log.
+log. Once conflicted, a dimension remains unknown during ordinary replay; v0.1
+defines no implicit conflict resolution rule. The projection exposes both an
+aggregate conflict flag and flags for each outcome dimension.
 
 OccurredAt reflects when the source says the fact occurred. RecordedAt reflects
 Habio ingestion. Neither timestamp by itself defines distributed total order.
@@ -74,8 +76,7 @@ log is not crash-safe.
 
 ## Open questions
 
-- Which event payloads need typed, versioned schemas for conformance?
-- What durability and acknowledgement contract should a local SQLite sink use?
+- Which event payload fields should become cross-implementation conformance requirements?
 - How are facts synchronized without treating cloud order as physical order?
 - When can a later verification resolve a previously conflicted dimension?
 
@@ -83,4 +84,5 @@ log is not crash-safe.
 
 Accepted for v0.1. Keep the core contract to immutable facts and Append. Treat
 the memory log and Attempt projection as replaceable reference implementations,
-not required infrastructure.
+not required infrastructure. RFC 0007 adds a stronger application-owned Journal
+contract and a local SQLite implementation without expanding the core contract.

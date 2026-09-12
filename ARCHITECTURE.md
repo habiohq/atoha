@@ -5,16 +5,16 @@
 ```text
 probabilistic caller
         |
-   adapter (MCP/API)
+   adapter (HTTP/MCP)
         |
         v
 +-----------------------+
-| Habio execution core  |
-|                       |
-| admit -> attempt      |
-| dispatch -> record    |
-| observe -> verify     |
+| application use cases |
+| Execute / Verify      |
+| Recover / Query       |
 +-----------+-----------+
+            |
+     core contracts
             |
        provider contract
             |
@@ -23,26 +23,39 @@ probabilistic caller
      physical system
 ```
 
-The adapters and providers are edges. The core knows neither MCP nor Home
-Assistant. A command path and an observation path may use different providers;
-their evidence meets at the execution boundary rather than inside a device
-object.
+The adapters, storage, and providers are edges. The core knows neither HTTP,
+MCP, SQLite, nor Home Assistant. Application use cases coordinate core ports
+without moving workflow or infrastructure concepts into core.
 
 ## Logical components
 
 ### Core
 
 Defines Actions, attempts, outcome knowledge, observations, verification input
-and result, lifecycle facts, and narrow extension contracts. It coordinates
-these concepts but does not discover devices, interpret natural language, or
-choose a domain policy.
+and result, lifecycle facts, and narrow extension contracts. It does not
+discover devices, interpret natural language, choose policy, or coordinate a
+runtime workflow.
+
+### Application
+
+The `execution` package contains one use case per operation: Execute, Verify,
+Recover, Get, and ScanIncomplete. It defines the stronger Journal port it needs.
+Attempt and Action identity are committed before provider I/O; ambiguous or
+incomplete attempts are never retried automatically.
 
 ### Adapters
 
 Translate caller protocols into Actions and expose the resulting evidence. The
-first MCP adapter is expected to offer a small surface such as `list_targets`,
-`get_state`, and `execute_action`; it must not claim physical success when Habio
-reports an unknown or unverified result.
+reference HTTP adapter offers execute, verify, explicit recovery, attempt query,
+and incomplete-attempt inspection. A future MCP adapter should delegate to the
+same use cases. Neither may claim physical success for unknown or unverified
+results.
+
+### Storage
+
+The memory Journal is for tests and examples. The SQLite Journal durably
+registers immutable Actions, claims unique Attempts, and appends fact groups in
+canonical sequence. Storage does not decide semantic outcomes or recovery.
 
 ### Providers
 
@@ -77,14 +90,15 @@ Start with one repository, not the final ecosystem topology.
 
 ### `habiohq/habio` (now)
 
-- core Go library;
-- execution semantics and contracts;
+- core Go library and provider-independent semantics;
+- application execution use cases;
+- local SQLite Journal and HTTP runtime;
 - design documents and RFCs; and
 - early conformance examples.
 
-The first server and Home Assistant proof of concept may initially be developed
-alongside the core if that is the fastest way to test semantics. They should not
-be imported into the core package.
+The reference server and Home Assistant proof of concept are currently developed
+alongside core to test the contracts. Package dependency checks prevent them
+from being imported inward.
 
 ### `habiohq/habio-server` (when runtime work starts to move independently)
 
@@ -123,12 +137,13 @@ execution or withholding its semantics.
 
 ## Dependency rules
 
-- `core` must not import adapter, provider, device-model, or cloud packages.
-- adapters may depend on core contracts, never the reverse.
+- core must not import application, adapter, provider, storage, device-model, or cloud packages.
+- application may depend on core and projections, not concrete adapters, providers, or storage.
+- adapters may depend on application/core contracts, never concrete providers or storage.
 - providers may depend on core contracts and vendor clients, never the reverse.
+- storage may depend on core contracts and database drivers, not application or providers.
 - strategy runtimes may produce Actions but cannot add strategy concepts to core.
 - storage is behind an event/fact contract and is not the source of semantic
   truth.
 
-These rules should be enforced by package layout and tests after the first
-public contracts are accepted through RFCs.
+These rules are enforced in CI by `scripts/check-dependencies.sh`.
