@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/habiohq/habio"
+	"github.com/habiohq/atoha"
 )
 
 // RecoveryAuthorizationSpec records the explicit human or policy decision that
 // permits one new attempt after an earlier attempt. It never asserts replay safety.
 type RecoveryAuthorizationSpec struct {
-	ActionID          habio.ActionID
-	PreviousAttemptID habio.AttemptID
+	ActionID          atoha.ActionID
+	PreviousAttemptID atoha.AttemptID
 	AuthorizedBy      string
 	AuthorizedAt      time.Time
 	Reason            string
@@ -22,8 +22,8 @@ type RecoveryAuthorizationSpec struct {
 
 // RecoveryAuthorization is immutable evidence required by RecoverAttempt.
 type RecoveryAuthorization struct {
-	actionID          habio.ActionID
-	previousAttemptID habio.AttemptID
+	actionID          atoha.ActionID
+	previousAttemptID atoha.AttemptID
 	authorizedBy      string
 	authorizedAt      time.Time
 	reason            string
@@ -45,8 +45,8 @@ func NewRecoveryAuthorization(spec RecoveryAuthorizationSpec) (RecoveryAuthoriza
 	}, nil
 }
 
-func (a RecoveryAuthorization) ActionID() habio.ActionID           { return a.actionID }
-func (a RecoveryAuthorization) PreviousAttemptID() habio.AttemptID { return a.previousAttemptID }
+func (a RecoveryAuthorization) ActionID() atoha.ActionID           { return a.actionID }
+func (a RecoveryAuthorization) PreviousAttemptID() atoha.AttemptID { return a.previousAttemptID }
 func (a RecoveryAuthorization) AuthorizedBy() string               { return a.authorizedBy }
 func (a RecoveryAuthorization) AuthorizedAt() time.Time            { return a.authorizedAt }
 func (a RecoveryAuthorization) Reason() string                     { return a.reason }
@@ -66,8 +66,8 @@ func NewRecoverAttempt(executor *ExecuteAction, reader RecoveryReader) (*Recover
 }
 
 type RecoverInput struct {
-	Action        habio.Action
-	AttemptID     habio.AttemptID
+	Action        atoha.Action
+	AttemptID     atoha.AttemptID
 	Authorization RecoveryAuthorization
 }
 
@@ -96,7 +96,7 @@ func (u *RecoverAttempt) Recover(ctx context.Context, input RecoverInput) (Execu
 		return ExecuteResult{}, stageError(StageRecover, err)
 	}
 	if !found || !sameAction(storedAction, input.Action) {
-		return ExecuteResult{}, stageError(StageRecover, errors.Join(habio.ErrActionIdentityConflict, ErrRecoveryNotAuthorized))
+		return ExecuteResult{}, stageError(StageRecover, errors.Join(atoha.ErrActionIdentityConflict, ErrRecoveryNotAuthorized))
 	}
 	return u.executor.execute(ctx, ExecuteInput{Action: input.Action, AttemptID: input.AttemptID}, &authorization)
 }

@@ -1,7 +1,7 @@
 # RFC 0003: Observation and Verification
 
 - Status: Accepted
-- Authors: Habio maintainers
+- Authors: Atoha maintainers
 - Created: 2026-09-06
 - Related issues: #4
 
@@ -15,14 +15,14 @@ an explicit evaluation time.
 
 Provider state can be stale, indirect, delayed, or inconsistent with an
 independent sensor. A command acknowledgement is not proof of the desired
-effect. Habio needs to retain evidence and identify the policy that judged it.
+effect. Atoha needs to retain evidence and identify the policy that judged it.
 
 ## Proposal
 
 Observation contains opaque identity, source, logical target, value, optional
 source evidence, ObservedAt, and RecordedAt. Values and evidence are bytes owned
 by the Observation. ObservedAt represents the source clock; RecordedAt
-represents Habio ingestion. Clock skew is preserved rather than silently
+represents Atoha ingestion. Clock skew is preserved rather than silently
 corrected.
 
 Freshness is not a boolean stored on Observation because freshness depends on

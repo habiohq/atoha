@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/habiohq/habio"
+	"github.com/habiohq/atoha"
 )
 
 func TestDispatchLightClimateAndMediaPlayerActions(t *testing.T) {
@@ -61,7 +61,7 @@ func TestDispatchLightClimateAndMediaPlayerActions(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Dispatch() error = %v", err)
 			}
-			if result.Status() != habio.DispatchAcknowledged {
+			if result.Status() != atoha.DispatchAcknowledged {
 				t.Fatalf("Status() = %v; want acknowledged", result.Status())
 			}
 			if _, ok := result.Receipt(); !ok {
@@ -116,7 +116,7 @@ func TestDispatchAndObserveRejectMismatchedIdentityBeforeHTTP(t *testing.T) {
 		if !errors.Is(err, ErrAttemptMismatch) {
 			t.Fatalf("Dispatch() error = %v; want ErrAttemptMismatch", err)
 		}
-		if result.Status() != habio.DispatchNotDispatched {
+		if result.Status() != atoha.DispatchNotDispatched {
 			t.Fatalf("Status() = %v; want not dispatched", result.Status())
 		}
 	})
@@ -126,7 +126,7 @@ func TestDispatchAndObserveRejectMismatchedIdentityBeforeHTTP(t *testing.T) {
 		if !errors.Is(err, ErrTargetMismatch) {
 			t.Fatalf("Dispatch() error = %v; want ErrTargetMismatch", err)
 		}
-		if result.Status() != habio.DispatchNotDispatched {
+		if result.Status() != atoha.DispatchNotDispatched {
 			t.Fatalf("Status() = %v; want not dispatched", result.Status())
 		}
 	})
@@ -181,7 +181,7 @@ func TestDispatchRetainsAcknowledgementWhenResponseBodyCannotBeRetained(t *testi
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("Dispatch() error = %v; want %v", err, tt.wantErr)
 			}
-			if result.Status() != habio.DispatchAcknowledged {
+			if result.Status() != atoha.DispatchAcknowledged {
 				t.Fatalf("Status() = %v; want acknowledged", result.Status())
 			}
 			receipt, ok := result.Receipt()
@@ -215,7 +215,7 @@ func TestDispatchTimeoutIsUnknownAndNotRetried(t *testing.T) {
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("Dispatch() error = %v; want deadline exceeded", err)
 	}
-	if result.Status() != habio.DispatchUnknown {
+	if result.Status() != atoha.DispatchUnknown {
 		t.Fatalf("Status() = %v; timeout must be unknown", result.Status())
 	}
 	if calls.Load() != 1 {
@@ -241,7 +241,7 @@ func TestObserveAndVerifyFreshState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Status() != habio.VerificationVerified {
+	if result.Status() != atoha.VerificationVerified {
 		t.Fatalf("Status() = %v; want verified (%s)", result.Status(), result.Reason())
 	}
 }
@@ -257,25 +257,25 @@ func TestStateVerifierEvidenceCases(t *testing.T) {
 		attributes   string
 		observedAt   time.Time
 		source       string
-		want         habio.VerificationStatus
+		want         atoha.VerificationStatus
 		observations bool
 	}{
-		{name: "missing", actionName: "turn_on", input: `{}`, want: habio.VerificationInconclusive},
-		{name: "stale", actionName: "turn_on", input: `{}`, state: "on", attributes: `{}`, observedAt: now.Add(-time.Minute), want: habio.VerificationInconclusive, observations: true},
-		{name: "contradictory", actionName: "turn_on", input: `{}`, state: "off", attributes: `{}`, observedAt: now.Add(-time.Second), want: habio.VerificationUnsatisfied, observations: true},
-		{name: "independent observation path", actionName: "turn_off", input: `{}`, state: "off", attributes: `{}`, observedAt: now.Add(-time.Second), source: "external-meter", want: habio.VerificationVerified, observations: true},
-		{name: "climate setpoint", actionName: "set_temperature", input: `{"temperature":24}`, state: "heat", attributes: `{"temperature":24.0}`, observedAt: now.Add(-time.Second), want: habio.VerificationVerified, observations: true},
+		{name: "missing", actionName: "turn_on", input: `{}`, want: atoha.VerificationInconclusive},
+		{name: "stale", actionName: "turn_on", input: `{}`, state: "on", attributes: `{}`, observedAt: now.Add(-time.Minute), want: atoha.VerificationInconclusive, observations: true},
+		{name: "contradictory", actionName: "turn_on", input: `{}`, state: "off", attributes: `{}`, observedAt: now.Add(-time.Second), want: atoha.VerificationUnsatisfied, observations: true},
+		{name: "independent observation path", actionName: "turn_off", input: `{}`, state: "off", attributes: `{}`, observedAt: now.Add(-time.Second), source: "external-meter", want: atoha.VerificationVerified, observations: true},
+		{name: "climate setpoint", actionName: "set_temperature", input: `{"temperature":24}`, state: "heat", attributes: `{"temperature":24.0}`, observedAt: now.Add(-time.Second), want: atoha.VerificationVerified, observations: true},
 	}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			action, _ := actionAttempt(t, i, "living-room-target", tt.actionName, tt.input, now.Add(-time.Minute))
-			var observations []habio.Observation
+			var observations []atoha.Observation
 			if tt.observations {
 				source := tt.source
 				if source == "" {
 					source = ProviderID + "/rest"
 				}
-				observations = []habio.Observation{stateObservation(t, i, source, tt.state, tt.attributes, tt.observedAt, now)}
+				observations = []atoha.Observation{stateObservation(t, i, source, tt.state, tt.attributes, tt.observedAt, now)}
 			}
 			result, err := verifier.Verify(context.Background(), action, observations, now)
 			if err != nil {
@@ -299,11 +299,11 @@ func stateClient(t *testing.T, entityID, state, attributes string, lastUpdated t
 	})}
 }
 
-func stateObservation(t *testing.T, n int, source, state, attributes string, observedAt, recordedAt time.Time) habio.Observation {
+func stateObservation(t *testing.T, n int, source, state, attributes string, observedAt, recordedAt time.Time) atoha.Observation {
 	t.Helper()
 	value := []byte(`{"entity_id":"fixture.entity","state":"` + state + `","attributes":` + attributes + `,"last_updated":"` + observedAt.Format(time.RFC3339Nano) + `"}`)
-	observation, err := habio.NewObservation(habio.ObservationSpec{
-		ID: habio.ObservationID("observation-" + string(rune('a'+n))), Source: source,
+	observation, err := atoha.NewObservation(atoha.ObservationSpec{
+		ID: atoha.ObservationID("observation-" + string(rune('a'+n))), Source: source,
 		Target: "living-room-target", Value: value, ObservedAt: observedAt, RecordedAt: recordedAt,
 	})
 	if err != nil {
@@ -312,18 +312,18 @@ func stateObservation(t *testing.T, n int, source, state, attributes string, obs
 	return observation
 }
 
-func actionAttempt(t *testing.T, n int, target, name, input string, now time.Time) (habio.Action, habio.ExecutionAttempt) {
+func actionAttempt(t *testing.T, n int, target, name, input string, now time.Time) (atoha.Action, atoha.ExecutionAttempt) {
 	t.Helper()
 	suffix := string(rune('a' + n))
-	action, err := habio.NewAction(habio.ActionSpec{
-		ID: habio.ActionID("action-" + suffix), Target: target, Name: name,
+	action, err := atoha.NewAction(atoha.ActionSpec{
+		ID: atoha.ActionID("action-" + suffix), Target: target, Name: name,
 		Input: []byte(input), RequestedAt: now,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	attempt, err := habio.NewExecutionAttempt(habio.ExecutionAttemptSpec{
-		ID: habio.AttemptID("attempt-" + suffix), ActionID: action.ID(), StartedAt: now,
+	attempt, err := atoha.NewExecutionAttempt(atoha.ExecutionAttemptSpec{
+		ID: atoha.AttemptID("attempt-" + suffix), ActionID: action.ID(), StartedAt: now,
 	})
 	if err != nil {
 		t.Fatal(err)

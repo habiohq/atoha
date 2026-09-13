@@ -2,7 +2,7 @@
 
 ## Goal
 
-Habio should gain integrations and policies without turning the core into a
+Atoha should gain integrations and policies without turning the core into a
 framework or a device model. v0.1 uses in-process Go composition and the
 smallest contracts that real experiments require.
 
@@ -27,7 +27,7 @@ device discovery and from a universal capability taxonomy.
 ### Admitter
 
 Evaluates whether an action may proceed and returns an explainable decision.
-Habio invokes the enforcement point; extensions own authorization,
+Atoha invokes the enforcement point; extensions own authorization,
 confirmation, safety, and domain policy.
 
 ### Observer

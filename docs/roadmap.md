@@ -16,7 +16,7 @@ semantic evidence, not task count, determines readiness.
 - Collect concrete timeout, acknowledgement, observation, and replay scenarios.
 - Define v0.1 acceptance examples without defining device types in core.
 
-Exit: reviewers can explain what Habio owns and identify false certainty in a
+Exit: reviewers can explain what Atoha owns and identify false certainty in a
 proposed API.
 
 ## Days 3-5: smallest executable semantics
@@ -42,7 +42,7 @@ different in the API and tests.
 
 ## Days 9-10: Home Assistant proof of concept
 
-- Start the self-hosted runtime boundary; create `habio-server` only if its
+- Start the self-hosted runtime boundary; create `atoha-server` only if its
   release and dependency boundary is already useful.
 - Exercise light, climate, and media-player entities as provider fixtures.
 - Capture real or reproducible traces for ambiguous and unverified outcomes.

@@ -1,4 +1,4 @@
-package habio
+package atoha
 
 import (
 	"errors"
@@ -16,13 +16,13 @@ type AttemptID string
 
 var (
 	// ErrInvalidAction indicates that an ActionSpec cannot define an Action.
-	ErrInvalidAction = errors.New("habio: invalid action")
+	ErrInvalidAction = errors.New("atoha: invalid action")
 	// ErrInvalidExecutionAttempt indicates that an ExecutionAttemptSpec cannot
 	// define an ExecutionAttempt.
-	ErrInvalidExecutionAttempt = errors.New("habio: invalid execution attempt")
+	ErrInvalidExecutionAttempt = errors.New("atoha: invalid execution attempt")
 	// ErrActionIdentityConflict means an existing ActionID was presented with
 	// different immutable intent.
-	ErrActionIdentityConflict = errors.New("habio: action identity conflict")
+	ErrActionIdentityConflict = errors.New("atoha: action identity conflict")
 )
 
 // ActionSpec contains the caller-supplied data needed to create an Action.

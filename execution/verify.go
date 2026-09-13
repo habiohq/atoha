@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/habiohq/habio"
+	"github.com/habiohq/atoha"
 )
 
 // VerifyConfig supplies independent observation and verification ports.
 type VerifyConfig struct {
-	Resolver      habio.Resolver
-	Observer      habio.Observer
-	Verifier      habio.Verifier
+	Resolver      atoha.Resolver
+	Observer      atoha.Observer
+	Verifier      atoha.Verifier
 	Journal       Journal
 	Reader        AttemptEventReader
 	Actions       ActionReader
@@ -23,9 +23,9 @@ type VerifyConfig struct {
 
 // VerifyAttempt observes and assesses an existing attempt without dispatching it.
 type VerifyAttempt struct {
-	resolver      habio.Resolver
-	observer      habio.Observer
-	verifier      habio.Verifier
+	resolver      atoha.Resolver
+	observer      atoha.Observer
+	verifier      atoha.Verifier
 	journal       Journal
 	reader        AttemptEventReader
 	actions       ActionReader
@@ -34,16 +34,16 @@ type VerifyAttempt struct {
 }
 
 type VerifyInput struct {
-	Action    habio.Action
-	AttemptID habio.AttemptID
+	Action    atoha.Action
+	AttemptID atoha.AttemptID
 }
 
 type VerifyResult struct {
-	ActionID     habio.ActionID
-	AttemptID    habio.AttemptID
-	Target       habio.ResolvedTarget
-	Observations []habio.Observation
-	Verification habio.VerificationResult
+	ActionID     atoha.ActionID
+	AttemptID    atoha.AttemptID
+	Target       atoha.ResolvedTarget
+	Observations []atoha.Observation
+	Verification atoha.VerificationResult
 }
 
 func NewVerifyAttempt(config VerifyConfig) (*VerifyAttempt, error) {
@@ -89,7 +89,7 @@ func (u *VerifyAttempt) Verify(ctx context.Context, input VerifyInput) (VerifyRe
 		return result, stageError(StageValidate, ErrAttemptNotFound)
 	}
 	if !sameAction(storedAction, input.Action) {
-		return result, stageError(StageValidate, habio.ErrActionIdentityConflict)
+		return result, stageError(StageValidate, atoha.ErrActionIdentityConflict)
 	}
 
 	target, err := u.resolver.Resolve(ctx, input.Action)
@@ -98,15 +98,15 @@ func (u *VerifyAttempt) Verify(ctx context.Context, input VerifyInput) (VerifyRe
 		return result, stageError(StageResolve, err)
 	}
 	observations, observeErr := u.observer.Observe(ctx, input.Action, target)
-	result.Observations = append([]habio.Observation(nil), observations...)
+	result.Observations = append([]atoha.Observation(nil), observations...)
 	checkedAt := u.now().UTC()
 	verification, verifyErr := u.verifier.Verify(ctx, input.Action, observations, checkedAt)
 	result.Verification = verification
-	if verification.Status() == habio.VerificationUnknown && verifyErr == nil {
+	if verification.Status() == atoha.VerificationUnknown && verifyErr == nil {
 		verifyErr = ErrVerificationUnknown
 	}
 
-	facts := make([]habio.ExecutionEvent, 0, len(observations)+2)
+	facts := make([]atoha.ExecutionEvent, 0, len(observations)+2)
 	var buildErr error
 	for _, observation := range observations {
 		event, eventErr := observationEvent(input.Action, input.AttemptID, observation)

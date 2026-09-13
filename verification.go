@@ -1,4 +1,4 @@
-package habio
+package atoha
 
 import (
 	"context"
@@ -25,7 +25,7 @@ const (
 	VerificationInconclusive
 )
 
-var ErrInvalidVerification = errors.New("habio: invalid verification")
+var ErrInvalidVerification = errors.New("atoha: invalid verification")
 
 // VerificationResultSpec contains one named Verifier's immutable assessment.
 type VerificationResultSpec struct {
@@ -106,7 +106,7 @@ func (r VerificationResult) Reason() string { return r.reason }
 
 // Verifier assesses whether observations establish an Action's desired effect.
 // asOf makes freshness evaluation deterministic. Concrete evidence policy lives
-// in extension packages, not in the Habio core.
+// in extension packages, not in the Atoha core.
 type Verifier interface {
 	Verify(ctx context.Context, action Action, observations []Observation, asOf time.Time) (VerificationResult, error)
 }

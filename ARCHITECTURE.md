@@ -1,4 +1,4 @@
-# Habio architecture
+# Atoha architecture
 
 ## System boundary
 
@@ -73,14 +73,14 @@ contracts. Concrete authorization and safety policy remains outside the core.
 ```text
 local app or local AI
         |
- self-hosted Habio server
+ self-hosted Atoha server
         |
  local provider (for example Home Assistant)
         |
      physical device
 ```
 
-The execution path must work with no Habio cloud dependency. Cloud products may
+The execution path must work with no Atoha cloud dependency. Cloud products may
 add managed connectivity and operations but cannot be a prerequisite for local
 execution.
 
@@ -88,7 +88,7 @@ execution.
 
 Start with one repository, not the final ecosystem topology.
 
-### `habiohq/habio` (now)
+### `habiohq/atoha` (now)
 
 - core Go library and provider-independent semantics;
 - application execution use cases;
@@ -100,7 +100,7 @@ The reference server and Home Assistant proof of concept are currently developed
 alongside core to test the contracts. Package dependency checks prevent them
 from being imported inward.
 
-### `habiohq/habio-server` (when runtime work starts to move independently)
+### `habiohq/atoha-server` (when runtime work starts to move independently)
 
 - self-hosted runtime and CLI;
 - local API, configuration, and storage;
@@ -111,8 +111,8 @@ from being imported inward.
 
 Provider, MCP, strategy, and conformance repositories are created only when an
 independent release cycle or maintainer boundary is demonstrated. Likely
-candidates include `habio-provider-homeassistant`, `habio-provider-mhs`,
-`habio-mcp`, `habio-strategy-sdk`, and `habio-conformance`.
+candidates include `atoha-provider-homeassistant`, `atoha-provider-mhs`,
+`atoha-mcp`, `atoha-strategy-sdk`, and `atoha-conformance`.
 
 The split rule is:
 
@@ -127,7 +127,7 @@ The product principle is **open execution, managed convenience**.
 
 Apache-2.0 OSS includes the execution core, self-hosted runtime, provider
 contracts, local MCP, local execution, local strategy runtime, and extension
-SDKs. A proprietary Habio Cloud may provide hosted MCP, OAuth, remote
+SDKs. A proprietary Atoha Cloud may provide hosted MCP, OAuth, remote
 connectivity, credential management, fleet operations, history, observability,
 audit, policy UI, integration registry, marketplace, billing, teams, and
 support.

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/habiohq/habio"
+	"github.com/habiohq/atoha"
 )
 
-// translator is the anti-corruption layer between Habio and Home Assistant.
+// translator is the anti-corruption layer between Atoha and Home Assistant.
 type translator struct{ bindings map[string]string }
 
 func newTranslator(source map[string]string) (translator, error) {
@@ -26,15 +26,15 @@ func newTranslator(source map[string]string) (translator, error) {
 	return translator{bindings: bindings}, nil
 }
 
-func (t translator) resolve(action habio.Action) (habio.ResolvedTarget, error) {
+func (t translator) resolve(action atoha.Action) (atoha.ResolvedTarget, error) {
 	entityID, ok := t.bindings[action.Target()]
 	if !ok {
-		return habio.ResolvedTarget{}, fmt.Errorf("%w: %s", ErrTargetNotFound, action.Target())
+		return atoha.ResolvedTarget{}, fmt.Errorf("%w: %s", ErrTargetNotFound, action.Target())
 	}
-	return habio.NewResolvedTarget(ProviderID, []byte(entityID))
+	return atoha.NewResolvedTarget(ProviderID, []byte(entityID))
 }
 
-func (t translator) entityFor(action habio.Action, target habio.ResolvedTarget) (string, error) {
+func (t translator) entityFor(action atoha.Action, target atoha.ResolvedTarget) (string, error) {
 	if target.Provider() != ProviderID {
 		return "", fmt.Errorf("%w: provider %q", ErrInvalidTarget, target.Provider())
 	}
@@ -52,7 +52,7 @@ func (t translator) entityFor(action habio.Action, target habio.ResolvedTarget) 
 	return entityID, nil
 }
 
-func (t translator) dispatchRequest(action habio.Action, target habio.ResolvedTarget) (serviceRequest, error) {
+func (t translator) dispatchRequest(action atoha.Action, target atoha.ResolvedTarget) (serviceRequest, error) {
 	entityID, err := t.entityFor(action, target)
 	if err != nil {
 		return serviceRequest{}, err

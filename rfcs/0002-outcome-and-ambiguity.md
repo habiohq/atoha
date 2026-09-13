@@ -1,7 +1,7 @@
 # RFC 0002: Outcome and ambiguity
 
 - Status: Accepted
-- Authors: Habio maintainers
+- Authors: Atoha maintainers
 - Created: 2026-09-06
 - Related issues: #3
 
@@ -16,7 +16,7 @@ the valid zero value. Go errors remain a separate return channel.
 A single success/failure enum creates a false linear lifecycle. Provider
 acknowledgement can exist without physical evidence, an observation can arrive
 after a response timeout, and a transport error does not prove physical
-failure. Habio must retain partial and conflicting knowledge.
+failure. Atoha must retain partial and conflicting knowledge.
 
 ## Proposal
 

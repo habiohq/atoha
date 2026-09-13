@@ -1,5 +1,5 @@
 // Package homeassistant provides a REST proof-of-concept anti-corruption layer.
-// Provider is the Habio-facing facade; REST transport and translation stay in
+// Provider is the Atoha-facing facade; REST transport and translation stay in
 // separate implementation files so Home Assistant concepts do not leak inward.
 package homeassistant
 
@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/habiohq/habio"
+	"github.com/habiohq/atoha"
 )
 
 const ProviderID = "homeassistant"
@@ -38,7 +38,7 @@ type Config struct {
 	Now      func() time.Time
 }
 
-// Provider is the Habio-facing facade over translation and REST transport.
+// Provider is the Atoha-facing facade over translation and REST transport.
 type Provider struct {
 	translator translator
 	client     haClient
@@ -76,37 +76,37 @@ func New(config Config) (*Provider, error) {
 	}, nil
 }
 
-func (p *Provider) Resolve(_ context.Context, action habio.Action) (habio.ResolvedTarget, error) {
+func (p *Provider) Resolve(_ context.Context, action atoha.Action) (atoha.ResolvedTarget, error) {
 	return p.translator.resolve(action)
 }
 
-// Dispatch translates a Habio Action and delegates exactly one REST call.
-func (p *Provider) Dispatch(ctx context.Context, attempt habio.ExecutionAttempt, action habio.Action, target habio.ResolvedTarget) (habio.DispatchResult, error) {
+// Dispatch translates a Atoha Action and delegates exactly one REST call.
+func (p *Provider) Dispatch(ctx context.Context, attempt atoha.ExecutionAttempt, action atoha.Action, target atoha.ResolvedTarget) (atoha.DispatchResult, error) {
 	if attempt.ActionID() != action.ID() {
-		return p.result(attempt.ID(), habio.DispatchNotDispatched, nil, fmt.Errorf("%w: attempt action %q, action %q", ErrAttemptMismatch, attempt.ActionID(), action.ID()))
+		return p.result(attempt.ID(), atoha.DispatchNotDispatched, nil, fmt.Errorf("%w: attempt action %q, action %q", ErrAttemptMismatch, attempt.ActionID(), action.ID()))
 	}
 	request, err := p.translator.dispatchRequest(action, target)
 	if err != nil {
-		return p.result(attempt.ID(), habio.DispatchNotDispatched, nil, err)
+		return p.result(attempt.ID(), atoha.DispatchNotDispatched, nil, err)
 	}
 	response, err := p.client.callService(ctx, request)
 	if err != nil && !response.received {
-		return p.result(attempt.ID(), habio.DispatchUnknown, nil, err)
+		return p.result(attempt.ID(), atoha.DispatchUnknown, nil, err)
 	}
 	if response.statusCode < http.StatusOK || response.statusCode >= http.StatusMultipleChoices {
 		statusErr := fmt.Errorf("%w: %s", ErrUnexpectedStatus, response.status)
-		return p.result(attempt.ID(), habio.DispatchDispatched, nil, errors.Join(statusErr, err))
+		return p.result(attempt.ID(), atoha.DispatchDispatched, nil, errors.Join(statusErr, err))
 	}
-	receipt, receiptErr := habio.NewReceipt(habio.ReceiptSpec{
+	receipt, receiptErr := atoha.NewReceipt(atoha.ReceiptSpec{
 		Provider: ProviderID, AttemptID: attempt.ID(), ReceivedAt: p.now(), Evidence: response.body,
 	})
 	if receiptErr != nil {
-		return habio.DispatchResult{}, receiptErr
+		return atoha.DispatchResult{}, receiptErr
 	}
-	return p.result(attempt.ID(), habio.DispatchAcknowledged, &receipt, err)
+	return p.result(attempt.ID(), atoha.DispatchAcknowledged, &receipt, err)
 }
 
-func (p *Provider) Observe(ctx context.Context, action habio.Action, target habio.ResolvedTarget) ([]habio.Observation, error) {
+func (p *Provider) Observe(ctx context.Context, action atoha.Action, target atoha.ResolvedTarget) ([]atoha.Observation, error) {
 	entityID, err := p.translator.entityFor(action, target)
 	if err != nil {
 		return nil, err
@@ -122,28 +122,28 @@ func (p *Provider) Observe(ctx context.Context, action habio.Action, target habi
 		return nil, errors.New("homeassistant: state has no last_updated time")
 	}
 	hash := sha256.Sum256(append([]byte(entityID+"\x00"), state.Raw...))
-	observation, err := habio.NewObservation(habio.ObservationSpec{
-		ID: habio.ObservationID("ha-" + hex.EncodeToString(hash[:])), Source: ProviderID + "/rest",
+	observation, err := atoha.NewObservation(atoha.ObservationSpec{
+		ID: atoha.ObservationID("ha-" + hex.EncodeToString(hash[:])), Source: ProviderID + "/rest",
 		Target: action.Target(), Value: state.Raw, ObservedAt: state.LastUpdated, RecordedAt: p.now(),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return []habio.Observation{observation}, nil
+	return []atoha.Observation{observation}, nil
 }
 
-func (p *Provider) result(attemptID habio.AttemptID, status habio.DispatchStatus, receipt *habio.Receipt, operationErr error) (habio.DispatchResult, error) {
-	result, err := habio.NewDispatchResult(habio.DispatchResultSpec{
+func (p *Provider) result(attemptID atoha.AttemptID, status atoha.DispatchStatus, receipt *atoha.Receipt, operationErr error) (atoha.DispatchResult, error) {
+	result, err := atoha.NewDispatchResult(atoha.DispatchResultSpec{
 		Provider: ProviderID, AttemptID: attemptID, Status: status, Receipt: receipt,
 	})
 	if err != nil {
-		return habio.DispatchResult{}, err
+		return atoha.DispatchResult{}, err
 	}
 	return result, operationErr
 }
 
 var (
-	_ habio.Provider = (*Provider)(nil)
-	_ habio.Resolver = (*Provider)(nil)
-	_ habio.Observer = (*Provider)(nil)
+	_ atoha.Provider = (*Provider)(nil)
+	_ atoha.Resolver = (*Provider)(nil)
+	_ atoha.Observer = (*Provider)(nil)
 )

@@ -7,16 +7,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/habiohq/habio"
+	"github.com/habiohq/atoha"
 )
 
 const defaultRecordTimeout = 5 * time.Second
 
 // ExecuteConfig supplies the consumer-defined ports used by ExecuteAction.
 type ExecuteConfig struct {
-	Admitter      habio.Admitter
-	Resolver      habio.Resolver
-	Provider      habio.Provider
+	Admitter      atoha.Admitter
+	Resolver      atoha.Resolver
+	Provider      atoha.Provider
 	Journal       Journal
 	Now           func() time.Time
 	RecordTimeout time.Duration
@@ -24,9 +24,9 @@ type ExecuteConfig struct {
 
 // ExecuteAction coordinates one initial physical execution attempt.
 type ExecuteAction struct {
-	admitter      habio.Admitter
-	resolver      habio.Resolver
-	provider      habio.Provider
+	admitter      atoha.Admitter
+	resolver      atoha.Resolver
+	provider      atoha.Provider
 	journal       Journal
 	now           func() time.Time
 	recordTimeout time.Duration
@@ -34,18 +34,18 @@ type ExecuteAction struct {
 
 // ExecuteInput identifies the immutable intent and the unique attempt to claim.
 type ExecuteInput struct {
-	Action    habio.Action
-	AttemptID habio.AttemptID
+	Action    atoha.Action
+	AttemptID atoha.AttemptID
 }
 
 // ExecuteResult keeps semantic execution knowledge separate from operation errors.
 type ExecuteResult struct {
-	Action    habio.Action
-	Attempt   habio.ExecutionAttempt
-	Target    habio.ResolvedTarget
-	Admission habio.AdmissionStatus
-	Dispatch  habio.DispatchResult
-	Outcome   habio.Outcome
+	Action    atoha.Action
+	Attempt   atoha.ExecutionAttempt
+	Target    atoha.ResolvedTarget
+	Admission atoha.AdmissionStatus
+	Dispatch  atoha.DispatchResult
+	Outcome   atoha.Outcome
 }
 
 // NewExecuteAction constructs an execution use case at the composition root.
@@ -78,16 +78,16 @@ func (u *ExecuteAction) execute(ctx context.Context, input ExecuteInput, authori
 		return ExecuteResult{}, stageError(StageValidate, fmt.Errorf("%w: use case is nil", ErrInvalidInput))
 	}
 	startedAt := u.now().UTC()
-	attemptSpec := habio.ExecutionAttemptSpec{ID: input.AttemptID, ActionID: input.Action.ID(), StartedAt: startedAt}
+	attemptSpec := atoha.ExecutionAttemptSpec{ID: input.AttemptID, ActionID: input.Action.ID(), StartedAt: startedAt}
 	if authorization != nil {
 		attemptSpec.RecoveryOf = authorization.PreviousAttemptID()
 	}
-	attempt, err := habio.NewExecutionAttempt(attemptSpec)
+	attempt, err := atoha.NewExecutionAttempt(attemptSpec)
 	if err != nil {
 		return ExecuteResult{}, stageError(StageValidate, errors.Join(ErrInvalidInput, err))
 	}
 	result := ExecuteResult{Action: input.Action, Attempt: attempt}
-	result.Outcome = outcome(habio.AdmissionUnknown, habio.DispatchUnknown, habio.EffectUnknown)
+	result.Outcome = outcome(atoha.AdmissionUnknown, atoha.DispatchUnknown, atoha.EffectUnknown)
 
 	requested, err := actionRequestedEvent(input.Action, attempt.ID(), startedAt)
 	if err != nil {
@@ -97,7 +97,7 @@ func (u *ExecuteAction) execute(ctx context.Context, input ExecuteInput, authori
 	if err != nil {
 		return result, stageError(StageRecord, err)
 	}
-	initial := []habio.ExecutionEvent{requested, started}
+	initial := []atoha.ExecutionEvent{requested, started}
 	if authorization != nil {
 		authorized, eventErr := recoveryAuthorizedEvent(input.Action, attempt, *authorization, startedAt)
 		if eventErr != nil {
@@ -115,13 +115,13 @@ func (u *ExecuteAction) execute(ctx context.Context, input ExecuteInput, authori
 
 	admission, admitErr := u.admitter.Admit(ctx, input.Action)
 	switch admission {
-	case habio.AdmissionUnknown, habio.AdmissionRejected, habio.AdmissionAdmitted:
+	case atoha.AdmissionUnknown, atoha.AdmissionRejected, atoha.AdmissionAdmitted:
 	default:
 		admitErr = errors.Join(admitErr, fmt.Errorf("%w: invalid status %d", ErrAdmissionUnknown, admission))
-		admission = habio.AdmissionUnknown
+		admission = atoha.AdmissionUnknown
 	}
 	result.Admission = admission
-	if admission == habio.AdmissionAdmitted || admission == habio.AdmissionRejected {
+	if admission == atoha.AdmissionAdmitted || admission == atoha.AdmissionRejected {
 		event, eventErr := admissionEvent(input.Action, attempt, admission, admitErr, u.now().UTC())
 		if eventErr != nil {
 			return result, stageError(StageRecord, eventErr)
@@ -130,16 +130,16 @@ func (u *ExecuteAction) execute(ctx context.Context, input ExecuteInput, authori
 			return result, errors.Join(stageError(StageAdmit, admitErr), stageError(StageRecord, eventErr))
 		}
 	}
-	if admission != habio.AdmissionAdmitted || admitErr != nil {
+	if admission != atoha.AdmissionAdmitted || admitErr != nil {
 		cause := admitErr
-		if cause == nil && admission != habio.AdmissionRejected {
+		if cause == nil && admission != atoha.AdmissionRejected {
 			cause = ErrAdmissionUnknown
 		}
 		event, eventErr := notDispatchedEvent(input.Action, attempt, cause, u.now().UTC())
 		if eventErr == nil {
 			eventErr = u.appendAfterIO(ctx, event)
 		}
-		result.Outcome = outcome(admission, habio.DispatchNotDispatched, habio.EffectUnknown)
+		result.Outcome = outcome(admission, atoha.DispatchNotDispatched, atoha.EffectUnknown)
 		return result, errors.Join(stageError(StageAdmit, cause), stageError(StageRecord, eventErr))
 	}
 
@@ -150,7 +150,7 @@ func (u *ExecuteAction) execute(ctx context.Context, input ExecuteInput, authori
 		if eventErr == nil {
 			eventErr = u.appendAfterIO(ctx, event)
 		}
-		result.Outcome = outcome(admission, habio.DispatchNotDispatched, habio.EffectUnknown)
+		result.Outcome = outcome(admission, atoha.DispatchNotDispatched, atoha.EffectUnknown)
 		return result, errors.Join(stageError(StageResolve, resolveErr), stageError(StageRecord, eventErr))
 	}
 
@@ -162,39 +162,39 @@ func (u *ExecuteAction) execute(ctx context.Context, input ExecuteInput, authori
 	if eventErr == nil {
 		eventErr = u.appendAfterIO(ctx, dispatchFacts...)
 	}
-	effect := habio.EffectUnknown
-	if dispatch.Status() == habio.DispatchDispatched || dispatch.Status() == habio.DispatchAcknowledged {
-		effect = habio.EffectUnverified
+	effect := atoha.EffectUnknown
+	if dispatch.Status() == atoha.DispatchDispatched || dispatch.Status() == atoha.DispatchAcknowledged {
+		effect = atoha.EffectUnverified
 	}
 	result.Outcome = outcome(admission, dispatch.Status(), effect)
 	return result, errors.Join(stageError(StageDispatch, dispatchErr), stageError(StageRecord, eventErr))
 }
 
-func normalizeDispatch(result habio.DispatchResult, provider string, attemptID habio.AttemptID) (habio.DispatchResult, error) {
+func normalizeDispatch(result atoha.DispatchResult, provider string, attemptID atoha.AttemptID) (atoha.DispatchResult, error) {
 	if result.Provider() == provider && result.AttemptID() == attemptID {
 		return result, nil
 	}
-	unknown, err := habio.NewDispatchResult(habio.DispatchResultSpec{
-		Provider: provider, AttemptID: attemptID, Status: habio.DispatchUnknown,
+	unknown, err := atoha.NewDispatchResult(atoha.DispatchResultSpec{
+		Provider: provider, AttemptID: attemptID, Status: atoha.DispatchUnknown,
 	})
 	if err != nil {
-		return habio.DispatchResult{}, errors.Join(ErrInvalidProviderResult, err)
+		return atoha.DispatchResult{}, errors.Join(ErrInvalidProviderResult, err)
 	}
 	return unknown, fmt.Errorf("%w: expected provider %q and attempt %q", ErrInvalidProviderResult, provider, attemptID)
 }
 
-func (u *ExecuteAction) appendAfterIO(parent context.Context, events ...habio.ExecutionEvent) error {
+func (u *ExecuteAction) appendAfterIO(parent context.Context, events ...atoha.ExecutionEvent) error {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(parent), u.recordTimeout)
 	defer cancel()
 	return u.journal.AppendAll(ctx, events...)
 }
 
-func outcome(admission habio.AdmissionStatus, dispatch habio.DispatchStatus, effect habio.EffectStatus) habio.Outcome {
-	value, _ := habio.NewOutcome(habio.OutcomeSpec{Admission: admission, Dispatch: dispatch, Effect: effect})
+func outcome(admission atoha.AdmissionStatus, dispatch atoha.DispatchStatus, effect atoha.EffectStatus) atoha.Outcome {
+	value, _ := atoha.NewOutcome(atoha.OutcomeSpec{Admission: admission, Dispatch: dispatch, Effect: effect})
 	return value
 }
 
-func sameAction(a, b habio.Action) bool {
+func sameAction(a, b atoha.Action) bool {
 	return a.ID() == b.ID() && a.Target() == b.Target() && a.Name() == b.Name() &&
 		a.RequestedAt().Equal(b.RequestedAt()) && bytes.Equal(a.Input(), b.Input())
 }

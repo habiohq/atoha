@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/habiohq/habio"
-	"github.com/habiohq/habio/eventlog/memory"
-	"github.com/habiohq/habio/execution"
+	"github.com/habiohq/atoha"
+	"github.com/habiohq/atoha/eventlog/memory"
+	"github.com/habiohq/atoha/execution"
 )
 
 func TestExecutePreservesAmbiguousOutcomeInSuccessfulHTTPResponse(t *testing.T) {
@@ -85,33 +85,33 @@ func testHandler(t *testing.T) *Handler {
 
 type admitted struct{}
 
-func (admitted) Admit(context.Context, habio.Action) (habio.AdmissionStatus, error) {
-	return habio.AdmissionAdmitted, nil
+func (admitted) Admit(context.Context, atoha.Action) (atoha.AdmissionStatus, error) {
+	return atoha.AdmissionAdmitted, nil
 }
 
 type resolved struct{}
 
-func (resolved) Resolve(context.Context, habio.Action) (habio.ResolvedTarget, error) {
-	return habio.NewResolvedTarget("fixture", nil)
+func (resolved) Resolve(context.Context, atoha.Action) (atoha.ResolvedTarget, error) {
+	return atoha.NewResolvedTarget("fixture", nil)
 }
 
 type ambiguous struct{}
 
-func (ambiguous) Dispatch(_ context.Context, attempt habio.ExecutionAttempt, _ habio.Action, _ habio.ResolvedTarget) (habio.DispatchResult, error) {
-	result, _ := habio.NewDispatchResult(habio.DispatchResultSpec{Provider: "fixture", AttemptID: attempt.ID(), Status: habio.DispatchUnknown})
+func (ambiguous) Dispatch(_ context.Context, attempt atoha.ExecutionAttempt, _ atoha.Action, _ atoha.ResolvedTarget) (atoha.DispatchResult, error) {
+	result, _ := atoha.NewDispatchResult(atoha.DispatchResultSpec{Provider: "fixture", AttemptID: attempt.ID(), Status: atoha.DispatchUnknown})
 	return result, errors.New("fixture: timeout")
 }
 
 type noObservations struct{}
 
-func (noObservations) Observe(context.Context, habio.Action, habio.ResolvedTarget) ([]habio.Observation, error) {
+func (noObservations) Observe(context.Context, atoha.Action, atoha.ResolvedTarget) ([]atoha.Observation, error) {
 	return nil, nil
 }
 
 type inconclusive struct{}
 
-func (inconclusive) Verify(_ context.Context, _ habio.Action, _ []habio.Observation, at time.Time) (habio.VerificationResult, error) {
-	return habio.NewVerificationResult(habio.VerificationResultSpec{
-		Status: habio.VerificationInconclusive, Verifier: "fixture", CheckedAt: at, Reason: "none",
+func (inconclusive) Verify(_ context.Context, _ atoha.Action, _ []atoha.Observation, at time.Time) (atoha.VerificationResult, error) {
+	return atoha.NewVerificationResult(atoha.VerificationResultSpec{
+		Status: atoha.VerificationInconclusive, Verifier: "fixture", CheckedAt: at, Reason: "none",
 	})
 }

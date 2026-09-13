@@ -6,83 +6,83 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/habiohq/habio"
+	"github.com/habiohq/atoha"
 )
 
-func newEvent(actionID habio.ActionID, attemptID habio.AttemptID, kind habio.EventKind, qualifier string, occurredAt, recordedAt time.Time, data []byte) (habio.ExecutionEvent, error) {
+func newEvent(actionID atoha.ActionID, attemptID atoha.AttemptID, kind atoha.EventKind, qualifier string, occurredAt, recordedAt time.Time, data []byte) (atoha.ExecutionEvent, error) {
 	id := deterministicEventID(actionID, attemptID, kind, qualifier)
-	return habio.NewExecutionEvent(habio.ExecutionEventSpec{
+	return atoha.NewExecutionEvent(atoha.ExecutionEventSpec{
 		ID: id, ActionID: actionID, AttemptID: attemptID, Kind: kind,
 		OccurredAt: occurredAt, RecordedAt: recordedAt, Data: data,
 	})
 }
 
-func deterministicEventID(actionID habio.ActionID, attemptID habio.AttemptID, kind habio.EventKind, qualifier string) habio.EventID {
+func deterministicEventID(actionID atoha.ActionID, attemptID atoha.AttemptID, kind atoha.EventKind, qualifier string) atoha.EventID {
 	digest := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%s\x00%s\x00%s", actionID, attemptID, kind, qualifier)))
-	return habio.EventID("event-" + hex.EncodeToString(digest[:16]))
+	return atoha.EventID("event-" + hex.EncodeToString(digest[:16]))
 }
 
-func actionRequestedEvent(action habio.Action, attemptID habio.AttemptID, recordedAt time.Time) (habio.ExecutionEvent, error) {
+func actionRequestedEvent(action atoha.Action, attemptID atoha.AttemptID, recordedAt time.Time) (atoha.ExecutionEvent, error) {
 	data, err := marshalPayload(actionRequestedPayload{
 		Schema: EventDataSchemaV1, Target: action.Target(), Name: action.Name(), Input: action.Input(), RequestedAt: action.RequestedAt(),
 	})
 	if err != nil {
-		return habio.ExecutionEvent{}, err
+		return atoha.ExecutionEvent{}, err
 	}
-	return newEvent(action.ID(), attemptID, habio.EventActionRequested, string(attemptID), action.RequestedAt(), recordedAt, data)
+	return newEvent(action.ID(), attemptID, atoha.EventActionRequested, string(attemptID), action.RequestedAt(), recordedAt, data)
 }
 
-func attemptStartedEvent(action habio.Action, attempt habio.ExecutionAttempt, recordedAt time.Time) (habio.ExecutionEvent, error) {
+func attemptStartedEvent(action atoha.Action, attempt atoha.ExecutionAttempt, recordedAt time.Time) (atoha.ExecutionEvent, error) {
 	recoveryOf, _ := attempt.RecoveryOf()
 	data, err := marshalPayload(attemptStartedPayload{
 		Schema: EventDataSchemaV1, StartedAt: attempt.StartedAt(), RecoveryOf: recoveryOf,
 	})
 	if err != nil {
-		return habio.ExecutionEvent{}, err
+		return atoha.ExecutionEvent{}, err
 	}
-	return newEvent(action.ID(), attempt.ID(), habio.EventAttemptStarted, "", attempt.StartedAt(), recordedAt, data)
+	return newEvent(action.ID(), attempt.ID(), atoha.EventAttemptStarted, "", attempt.StartedAt(), recordedAt, data)
 }
 
-func recoveryAuthorizedEvent(action habio.Action, attempt habio.ExecutionAttempt, authorization RecoveryAuthorization, recordedAt time.Time) (habio.ExecutionEvent, error) {
+func recoveryAuthorizedEvent(action atoha.Action, attempt atoha.ExecutionAttempt, authorization RecoveryAuthorization, recordedAt time.Time) (atoha.ExecutionEvent, error) {
 	data, err := marshalPayload(recoveryAuthorizedPayload{
 		Schema: EventDataSchemaV1, PreviousAttemptID: authorization.PreviousAttemptID(),
 		AuthorizedBy: authorization.AuthorizedBy(), AuthorizedAt: authorization.AuthorizedAt(), Reason: authorization.Reason(),
 	})
 	if err != nil {
-		return habio.ExecutionEvent{}, err
+		return atoha.ExecutionEvent{}, err
 	}
-	return newEvent(action.ID(), attempt.ID(), habio.EventRecoveryAuthorized, "", authorization.AuthorizedAt(), recordedAt, data)
+	return newEvent(action.ID(), attempt.ID(), atoha.EventRecoveryAuthorized, "", authorization.AuthorizedAt(), recordedAt, data)
 }
 
-func admissionEvent(action habio.Action, attempt habio.ExecutionAttempt, status habio.AdmissionStatus, operationErr error, recordedAt time.Time) (habio.ExecutionEvent, error) {
-	kind := habio.EventActionAdmitted
-	if status == habio.AdmissionRejected {
-		kind = habio.EventActionRejected
+func admissionEvent(action atoha.Action, attempt atoha.ExecutionAttempt, status atoha.AdmissionStatus, operationErr error, recordedAt time.Time) (atoha.ExecutionEvent, error) {
+	kind := atoha.EventActionAdmitted
+	if status == atoha.AdmissionRejected {
+		kind = atoha.EventActionRejected
 	}
 	data, err := marshalPayload(admissionPayload{Schema: EventDataSchemaV1, Status: status.String(), Error: errorText(operationErr)})
 	if err != nil {
-		return habio.ExecutionEvent{}, err
+		return atoha.ExecutionEvent{}, err
 	}
 	return newEvent(action.ID(), attempt.ID(), kind, "", recordedAt, recordedAt, data)
 }
 
-func notDispatchedEvent(action habio.Action, attempt habio.ExecutionAttempt, cause error, recordedAt time.Time) (habio.ExecutionEvent, error) {
-	data, err := marshalPayload(dispatchPayload{Schema: EventDataSchemaV1, Status: habio.DispatchNotDispatched.String(), Error: errorText(cause)})
+func notDispatchedEvent(action atoha.Action, attempt atoha.ExecutionAttempt, cause error, recordedAt time.Time) (atoha.ExecutionEvent, error) {
+	data, err := marshalPayload(dispatchPayload{Schema: EventDataSchemaV1, Status: atoha.DispatchNotDispatched.String(), Error: errorText(cause)})
 	if err != nil {
-		return habio.ExecutionEvent{}, err
+		return atoha.ExecutionEvent{}, err
 	}
-	return newEvent(action.ID(), attempt.ID(), habio.EventNotDispatched, "", recordedAt, recordedAt, data)
+	return newEvent(action.ID(), attempt.ID(), atoha.EventNotDispatched, "", recordedAt, recordedAt, data)
 }
 
-func dispatchEvents(action habio.Action, attempt habio.ExecutionAttempt, target habio.ResolvedTarget, result habio.DispatchResult, operationErr error, recordedAt time.Time) ([]habio.ExecutionEvent, error) {
-	kind := habio.EventDispatchUnknown
+func dispatchEvents(action atoha.Action, attempt atoha.ExecutionAttempt, target atoha.ResolvedTarget, result atoha.DispatchResult, operationErr error, recordedAt time.Time) ([]atoha.ExecutionEvent, error) {
+	kind := atoha.EventDispatchUnknown
 	switch result.Status() {
-	case habio.DispatchNotDispatched:
-		kind = habio.EventNotDispatched
-	case habio.DispatchDispatched:
-		kind = habio.EventActionDispatched
-	case habio.DispatchAcknowledged:
-		kind = habio.EventProviderAcknowledged
+	case atoha.DispatchNotDispatched:
+		kind = atoha.EventNotDispatched
+	case atoha.DispatchDispatched:
+		kind = atoha.EventActionDispatched
+	case atoha.DispatchAcknowledged:
+		kind = atoha.EventProviderAcknowledged
 	}
 	payload := dispatchPayload{
 		Schema: EventDataSchemaV1, Provider: result.Provider(), Status: result.Status().String(),
@@ -99,9 +99,9 @@ func dispatchEvents(action habio.Action, attempt habio.ExecutionAttempt, target 
 	if err != nil {
 		return nil, err
 	}
-	events := []habio.ExecutionEvent{dispatchEvent}
-	if result.Status() == habio.DispatchDispatched || result.Status() == habio.DispatchAcknowledged {
-		effectEvent, err := newEvent(action.ID(), attempt.ID(), habio.EventEffectUnverified, "dispatch", recordedAt, recordedAt, nil)
+	events := []atoha.ExecutionEvent{dispatchEvent}
+	if result.Status() == atoha.DispatchDispatched || result.Status() == atoha.DispatchAcknowledged {
+		effectEvent, err := newEvent(action.ID(), attempt.ID(), atoha.EventEffectUnverified, "dispatch", recordedAt, recordedAt, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -110,30 +110,30 @@ func dispatchEvents(action habio.Action, attempt habio.ExecutionAttempt, target 
 	return events, nil
 }
 
-func observationEvent(action habio.Action, attemptID habio.AttemptID, observation habio.Observation) (habio.ExecutionEvent, error) {
+func observationEvent(action atoha.Action, attemptID atoha.AttemptID, observation atoha.Observation) (atoha.ExecutionEvent, error) {
 	data, err := marshalPayload(observationPayload{
 		Schema: EventDataSchemaV1, ID: observation.ID(), Source: observation.Source(), Target: observation.Target(),
 		Value: observation.Value(), Evidence: observation.Evidence(), ObservedAt: observation.ObservedAt(), RecordedAt: observation.RecordedAt(),
 	})
 	if err != nil {
-		return habio.ExecutionEvent{}, err
+		return atoha.ExecutionEvent{}, err
 	}
-	return newEvent(action.ID(), attemptID, habio.EventObservationRecorded, string(observation.ID()), observation.ObservedAt(), observation.RecordedAt(), data)
+	return newEvent(action.ID(), attemptID, atoha.EventObservationRecorded, string(observation.ID()), observation.ObservedAt(), observation.RecordedAt(), data)
 }
 
-func verificationEvents(action habio.Action, attemptID habio.AttemptID, result habio.VerificationResult, operationErr error, recordedAt time.Time) ([]habio.ExecutionEvent, error) {
-	if result.Status() == habio.VerificationUnknown {
+func verificationEvents(action atoha.Action, attemptID atoha.AttemptID, result atoha.VerificationResult, operationErr error, recordedAt time.Time) ([]atoha.ExecutionEvent, error) {
+	if result.Status() == atoha.VerificationUnknown {
 		return nil, nil
 	}
-	verificationKind := habio.EventVerificationInconclusive
-	effectKind := habio.EventEffectUnverified
+	verificationKind := atoha.EventVerificationInconclusive
+	effectKind := atoha.EventEffectUnverified
 	switch result.Status() {
-	case habio.VerificationVerified:
-		verificationKind = habio.EventVerificationVerified
-		effectKind = habio.EventEffectObservedSatisfied
-	case habio.VerificationUnsatisfied:
-		verificationKind = habio.EventVerificationUnsatisfied
-		effectKind = habio.EventEffectObservedUnsatisfied
+	case atoha.VerificationVerified:
+		verificationKind = atoha.EventVerificationVerified
+		effectKind = atoha.EventEffectObservedSatisfied
+	case atoha.VerificationUnsatisfied:
+		verificationKind = atoha.EventVerificationUnsatisfied
+		effectKind = atoha.EventEffectObservedUnsatisfied
 	}
 	qualifier := result.Verifier() + "\x00" + result.CheckedAt().Format(time.RFC3339Nano)
 	effectEvent, err := newEvent(action.ID(), attemptID, effectKind, qualifier, result.CheckedAt(), recordedAt, nil)
@@ -151,5 +151,5 @@ func verificationEvents(action habio.Action, attemptID habio.AttemptID, result h
 	if err != nil {
 		return nil, err
 	}
-	return []habio.ExecutionEvent{effectEvent, verificationEvent}, nil
+	return []atoha.ExecutionEvent{effectEvent, verificationEvent}, nil
 }

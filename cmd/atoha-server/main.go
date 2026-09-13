@@ -13,11 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/habiohq/habio"
-	"github.com/habiohq/habio/adapter/httpapi"
-	storesqlite "github.com/habiohq/habio/eventlog/sqlite"
-	"github.com/habiohq/habio/execution"
-	"github.com/habiohq/habio/provider/homeassistant"
+	"github.com/habiohq/atoha"
+	"github.com/habiohq/atoha/adapter/httpapi"
+	storesqlite "github.com/habiohq/atoha/eventlog/sqlite"
+	"github.com/habiohq/atoha/execution"
+	"github.com/habiohq/atoha/provider/homeassistant"
 )
 
 func main() {
@@ -82,7 +82,7 @@ func run() error {
 	defer stop()
 	serverErr := make(chan error, 1)
 	go func() { serverErr <- server.ListenAndServe() }()
-	log.Printf("Habio listening on %s", config.listenAddress)
+	log.Printf("Atoha listening on %s", config.listenAddress)
 	select {
 	case err := <-serverErr:
 		if !errors.Is(err, http.ErrServerClosed) {
@@ -109,34 +109,34 @@ type config struct {
 
 func loadConfig() (config, error) {
 	result := config{
-		listenAddress: envOr("HABIO_LISTEN", "127.0.0.1:8080"),
-		databasePath:  envOr("HABIO_DATABASE", "habio.db"), apiToken: os.Getenv("HABIO_API_TOKEN"),
-		homeAssistantURL:   os.Getenv("HABIO_HOME_ASSISTANT_URL"),
-		homeAssistantToken: os.Getenv("HABIO_HOME_ASSISTANT_TOKEN"),
+		listenAddress: envOr("ATOHA_LISTEN", "127.0.0.1:8080"),
+		databasePath:  envOr("ATOHA_DATABASE", "atoha.db"), apiToken: os.Getenv("ATOHA_API_TOKEN"),
+		homeAssistantURL:   os.Getenv("ATOHA_HOME_ASSISTANT_URL"),
+		homeAssistantToken: os.Getenv("ATOHA_HOME_ASSISTANT_TOKEN"),
 		providerTimeout:    10 * time.Second, verificationMaxAge: 30 * time.Second,
 	}
 	if result.homeAssistantURL == "" || result.homeAssistantToken == "" {
-		return config{}, errors.New("HABIO_HOME_ASSISTANT_URL and HABIO_HOME_ASSISTANT_TOKEN are required")
+		return config{}, errors.New("ATOHA_HOME_ASSISTANT_URL and ATOHA_HOME_ASSISTANT_TOKEN are required")
 	}
-	if err := json.Unmarshal([]byte(os.Getenv("HABIO_HOME_ASSISTANT_BINDINGS")), &result.bindings); err != nil || len(result.bindings) == 0 {
-		return config{}, fmt.Errorf("HABIO_HOME_ASSISTANT_BINDINGS must be a non-empty JSON object: %w", err)
+	if err := json.Unmarshal([]byte(os.Getenv("ATOHA_HOME_ASSISTANT_BINDINGS")), &result.bindings); err != nil || len(result.bindings) == 0 {
+		return config{}, fmt.Errorf("ATOHA_HOME_ASSISTANT_BINDINGS must be a non-empty JSON object: %w", err)
 	}
-	if value := os.Getenv("HABIO_PROVIDER_TIMEOUT"); value != "" {
+	if value := os.Getenv("ATOHA_PROVIDER_TIMEOUT"); value != "" {
 		duration, err := time.ParseDuration(value)
 		if err != nil || duration <= 0 {
-			return config{}, errors.New("HABIO_PROVIDER_TIMEOUT must be a positive duration")
+			return config{}, errors.New("ATOHA_PROVIDER_TIMEOUT must be a positive duration")
 		}
 		result.providerTimeout = duration
 	}
-	if value := os.Getenv("HABIO_VERIFICATION_MAX_AGE"); value != "" {
+	if value := os.Getenv("ATOHA_VERIFICATION_MAX_AGE"); value != "" {
 		duration, err := time.ParseDuration(value)
 		if err != nil || duration <= 0 {
-			return config{}, errors.New("HABIO_VERIFICATION_MAX_AGE must be a positive duration")
+			return config{}, errors.New("ATOHA_VERIFICATION_MAX_AGE must be a positive duration")
 		}
 		result.verificationMaxAge = duration
 	}
 	if result.apiToken == "" && !loopbackAddress(result.listenAddress) {
-		return config{}, errors.New("HABIO_API_TOKEN is required when HABIO_LISTEN is not loopback")
+		return config{}, errors.New("ATOHA_API_TOKEN is required when ATOHA_LISTEN is not loopback")
 	}
 	return result, nil
 }
@@ -162,8 +162,8 @@ func loopbackAddress(address string) bool {
 
 type allowAll struct{}
 
-func (allowAll) Admit(context.Context, habio.Action) (habio.AdmissionStatus, error) {
-	return habio.AdmissionAdmitted, nil
+func (allowAll) Admit(context.Context, atoha.Action) (atoha.AdmissionStatus, error) {
+	return atoha.AdmissionAdmitted, nil
 }
 
-var _ habio.Admitter = allowAll{}
+var _ atoha.Admitter = allowAll{}

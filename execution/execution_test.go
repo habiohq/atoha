@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/habiohq/habio"
-	"github.com/habiohq/habio/eventlog/memory"
+	"github.com/habiohq/atoha"
+	"github.com/habiohq/atoha/eventlog/memory"
 )
 
 var testNow = time.Date(2026, time.September, 12, 12, 0, 0, 0, time.UTC)
@@ -17,11 +17,11 @@ var testNow = time.Date(2026, time.September, 12, 12, 0, 0, 0, time.UTC)
 func TestExecuteAcknowledgedAndDuplicateAttemptIsBlockedBeforeIO(t *testing.T) {
 	log := memory.New()
 	var dispatches atomic.Int32
-	useCase := mustExecutor(t, log, providerFunc(func(_ context.Context, attempt habio.ExecutionAttempt, _ habio.Action, _ habio.ResolvedTarget) (habio.DispatchResult, error) {
+	useCase := mustExecutor(t, log, providerFunc(func(_ context.Context, attempt atoha.ExecutionAttempt, _ atoha.Action, _ atoha.ResolvedTarget) (atoha.DispatchResult, error) {
 		dispatches.Add(1)
-		receipt, _ := habio.NewReceipt(habio.ReceiptSpec{Provider: "fixture", AttemptID: attempt.ID(), ReceivedAt: testNow})
-		return habio.NewDispatchResult(habio.DispatchResultSpec{
-			Provider: "fixture", AttemptID: attempt.ID(), Status: habio.DispatchAcknowledged, Receipt: &receipt,
+		receipt, _ := atoha.NewReceipt(atoha.ReceiptSpec{Provider: "fixture", AttemptID: attempt.ID(), ReceivedAt: testNow})
+		return atoha.NewDispatchResult(atoha.DispatchResultSpec{
+			Provider: "fixture", AttemptID: attempt.ID(), Status: atoha.DispatchAcknowledged, Receipt: &receipt,
 		})
 	}))
 	action := mustAction(t, "action-1")
@@ -29,7 +29,7 @@ func TestExecuteAcknowledgedAndDuplicateAttemptIsBlockedBeforeIO(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Outcome.Admission() != habio.AdmissionAdmitted || result.Outcome.Dispatch() != habio.DispatchAcknowledged || result.Outcome.Effect() != habio.EffectUnverified {
+	if result.Outcome.Admission() != atoha.AdmissionAdmitted || result.Outcome.Dispatch() != atoha.DispatchAcknowledged || result.Outcome.Effect() != atoha.EffectUnverified {
 		t.Fatalf("Outcome() = %v/%v/%v", result.Outcome.Admission(), result.Outcome.Dispatch(), result.Outcome.Effect())
 	}
 	if _, err := useCase.Execute(context.Background(), ExecuteInput{Action: action, AttemptID: "attempt-1"}); !errors.Is(err, ErrAttemptAlreadyStarted) {
@@ -39,7 +39,7 @@ func TestExecuteAcknowledgedAndDuplicateAttemptIsBlockedBeforeIO(t *testing.T) {
 		t.Fatalf("dispatch count = %d; want 1", dispatches.Load())
 	}
 	view := mustGet(t, log, "attempt-1")
-	if view.Outcome.Dispatch() != habio.DispatchAcknowledged || view.Outcome.Effect() != habio.EffectUnverified {
+	if view.Outcome.Dispatch() != atoha.DispatchAcknowledged || view.Outcome.Effect() != atoha.EffectUnverified {
 		t.Fatal("persisted projection lost dispatch knowledge")
 	}
 }
@@ -48,16 +48,16 @@ func TestExecuteRejectedNeverResolvesOrDispatches(t *testing.T) {
 	log := memory.New()
 	var resolutions, dispatches atomic.Int32
 	executor, err := NewExecuteAction(ExecuteConfig{
-		Admitter: admitterFunc(func(context.Context, habio.Action) (habio.AdmissionStatus, error) {
-			return habio.AdmissionRejected, nil
+		Admitter: admitterFunc(func(context.Context, atoha.Action) (atoha.AdmissionStatus, error) {
+			return atoha.AdmissionRejected, nil
 		}),
-		Resolver: resolverFunc(func(context.Context, habio.Action) (habio.ResolvedTarget, error) {
+		Resolver: resolverFunc(func(context.Context, atoha.Action) (atoha.ResolvedTarget, error) {
 			resolutions.Add(1)
 			return fixtureTarget()
 		}),
-		Provider: providerFunc(func(context.Context, habio.ExecutionAttempt, habio.Action, habio.ResolvedTarget) (habio.DispatchResult, error) {
+		Provider: providerFunc(func(context.Context, atoha.ExecutionAttempt, atoha.Action, atoha.ResolvedTarget) (atoha.DispatchResult, error) {
 			dispatches.Add(1)
-			return habio.DispatchResult{}, nil
+			return atoha.DispatchResult{}, nil
 		}),
 		Journal: log, Now: func() time.Time { return testNow },
 	})
@@ -68,7 +68,7 @@ func TestExecuteRejectedNeverResolvesOrDispatches(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Outcome.Admission() != habio.AdmissionRejected || result.Outcome.Dispatch() != habio.DispatchNotDispatched {
+	if result.Outcome.Admission() != atoha.AdmissionRejected || result.Outcome.Dispatch() != atoha.DispatchNotDispatched {
 		t.Fatalf("Outcome() = %v/%v", result.Outcome.Admission(), result.Outcome.Dispatch())
 	}
 	if resolutions.Load() != 0 || dispatches.Load() != 0 {
@@ -80,13 +80,13 @@ func TestExecuteInvalidAdmissionIsUnknownAndNeverDispatches(t *testing.T) {
 	log := memory.New()
 	var dispatches atomic.Int32
 	executor, err := NewExecuteAction(ExecuteConfig{
-		Admitter: admitterFunc(func(context.Context, habio.Action) (habio.AdmissionStatus, error) {
-			return habio.AdmissionStatus(99), nil
+		Admitter: admitterFunc(func(context.Context, atoha.Action) (atoha.AdmissionStatus, error) {
+			return atoha.AdmissionStatus(99), nil
 		}),
-		Resolver: resolverFunc(func(context.Context, habio.Action) (habio.ResolvedTarget, error) { return fixtureTarget() }),
-		Provider: providerFunc(func(context.Context, habio.ExecutionAttempt, habio.Action, habio.ResolvedTarget) (habio.DispatchResult, error) {
+		Resolver: resolverFunc(func(context.Context, atoha.Action) (atoha.ResolvedTarget, error) { return fixtureTarget() }),
+		Provider: providerFunc(func(context.Context, atoha.ExecutionAttempt, atoha.Action, atoha.ResolvedTarget) (atoha.DispatchResult, error) {
 			dispatches.Add(1)
-			return habio.DispatchResult{}, nil
+			return atoha.DispatchResult{}, nil
 		}),
 		Journal: log, Now: func() time.Time { return testNow },
 	})
@@ -97,7 +97,7 @@ func TestExecuteInvalidAdmissionIsUnknownAndNeverDispatches(t *testing.T) {
 	if !errors.Is(err, ErrAdmissionUnknown) {
 		t.Fatalf("Execute() error = %v; want ErrAdmissionUnknown", err)
 	}
-	if result.Outcome.Admission() != habio.AdmissionUnknown || result.Outcome.Dispatch() != habio.DispatchNotDispatched {
+	if result.Outcome.Admission() != atoha.AdmissionUnknown || result.Outcome.Dispatch() != atoha.DispatchNotDispatched {
 		t.Fatalf("Outcome() = %v/%v", result.Outcome.Admission(), result.Outcome.Dispatch())
 	}
 	if dispatches.Load() != 0 {
@@ -109,23 +109,23 @@ func TestExecuteAmbiguousProviderErrorIsRecordedAndNotRetried(t *testing.T) {
 	log := memory.New()
 	var dispatches atomic.Int32
 	providerErr := context.DeadlineExceeded
-	useCase := mustExecutor(t, log, providerFunc(func(_ context.Context, attempt habio.ExecutionAttempt, _ habio.Action, _ habio.ResolvedTarget) (habio.DispatchResult, error) {
+	useCase := mustExecutor(t, log, providerFunc(func(_ context.Context, attempt atoha.ExecutionAttempt, _ atoha.Action, _ atoha.ResolvedTarget) (atoha.DispatchResult, error) {
 		dispatches.Add(1)
-		result, _ := habio.NewDispatchResult(habio.DispatchResultSpec{Provider: "fixture", AttemptID: attempt.ID(), Status: habio.DispatchUnknown})
+		result, _ := atoha.NewDispatchResult(atoha.DispatchResultSpec{Provider: "fixture", AttemptID: attempt.ID(), Status: atoha.DispatchUnknown})
 		return result, providerErr
 	}))
 	result, err := useCase.Execute(context.Background(), ExecuteInput{Action: mustAction(t, "action-timeout"), AttemptID: "attempt-timeout"})
 	if !errors.Is(err, providerErr) {
 		t.Fatalf("Execute() error = %v; want deadline", err)
 	}
-	if result.Outcome.Dispatch() != habio.DispatchUnknown || result.Outcome.Effect() != habio.EffectUnknown {
+	if result.Outcome.Dispatch() != atoha.DispatchUnknown || result.Outcome.Effect() != atoha.EffectUnknown {
 		t.Fatal("ambiguous dispatch was turned into a physical conclusion")
 	}
 	if dispatches.Load() != 1 {
 		t.Fatal("ambiguous dispatch was retried")
 	}
 	view := mustGet(t, log, "attempt-timeout")
-	if view.Outcome.Dispatch() != habio.DispatchUnknown {
+	if view.Outcome.Dispatch() != atoha.DispatchUnknown {
 		t.Fatal("unknown dispatch fact was not replayable")
 	}
 }
@@ -133,14 +133,14 @@ func TestExecuteAmbiguousProviderErrorIsRecordedAndNotRetried(t *testing.T) {
 func TestExecuteReturnsKnownDispatchWhenPostIORecordingFails(t *testing.T) {
 	base := memory.New()
 	journal := &failAppendJournal{Log: base, failAt: 2, err: errors.New("fixture: disk full")}
-	useCase := mustExecutor(t, journal, providerFunc(func(_ context.Context, attempt habio.ExecutionAttempt, _ habio.Action, _ habio.ResolvedTarget) (habio.DispatchResult, error) {
-		return habio.NewDispatchResult(habio.DispatchResultSpec{Provider: "fixture", AttemptID: attempt.ID(), Status: habio.DispatchDispatched})
+	useCase := mustExecutor(t, journal, providerFunc(func(_ context.Context, attempt atoha.ExecutionAttempt, _ atoha.Action, _ atoha.ResolvedTarget) (atoha.DispatchResult, error) {
+		return atoha.NewDispatchResult(atoha.DispatchResultSpec{Provider: "fixture", AttemptID: attempt.ID(), Status: atoha.DispatchDispatched})
 	}))
 	result, err := useCase.Execute(context.Background(), ExecuteInput{Action: mustAction(t, "action-record-fail"), AttemptID: "attempt-record-fail"})
-	if err == nil || result.Outcome.Dispatch() != habio.DispatchDispatched || result.Outcome.Effect() != habio.EffectUnverified {
+	if err == nil || result.Outcome.Dispatch() != atoha.DispatchDispatched || result.Outcome.Effect() != atoha.EffectUnverified {
 		t.Fatalf("Execute() = dispatch %v, effect %v, err %v", result.Outcome.Dispatch(), result.Outcome.Effect(), err)
 	}
-	if result.Dispatch.Status() != habio.DispatchDispatched {
+	if result.Dispatch.Status() != atoha.DispatchDispatched {
 		t.Fatal("known provider evidence was discarded after journal failure")
 	}
 }
@@ -148,25 +148,25 @@ func TestExecuteReturnsKnownDispatchWhenPostIORecordingFails(t *testing.T) {
 func TestVerifyIsSeparateAndPersistsObservationAssessment(t *testing.T) {
 	log := memory.New()
 	action := mustAction(t, "action-verify")
-	executor := mustExecutor(t, log, providerFunc(func(_ context.Context, attempt habio.ExecutionAttempt, _ habio.Action, _ habio.ResolvedTarget) (habio.DispatchResult, error) {
-		return habio.NewDispatchResult(habio.DispatchResultSpec{Provider: "fixture", AttemptID: attempt.ID(), Status: habio.DispatchDispatched})
+	executor := mustExecutor(t, log, providerFunc(func(_ context.Context, attempt atoha.ExecutionAttempt, _ atoha.Action, _ atoha.ResolvedTarget) (atoha.DispatchResult, error) {
+		return atoha.NewDispatchResult(atoha.DispatchResultSpec{Provider: "fixture", AttemptID: attempt.ID(), Status: atoha.DispatchDispatched})
 	}))
 	if _, err := executor.Execute(context.Background(), ExecuteInput{Action: action, AttemptID: "attempt-verify"}); err != nil {
 		t.Fatal(err)
 	}
-	observation, _ := habio.NewObservation(habio.ObservationSpec{
+	observation, _ := atoha.NewObservation(atoha.ObservationSpec{
 		ID: "observation-1", Source: "fixture", Target: action.Target(), Value: []byte("on"),
 		ObservedAt: testNow, RecordedAt: testNow,
 	})
 	verify, err := NewVerifyAttempt(VerifyConfig{
-		Resolver: resolverFunc(func(context.Context, habio.Action) (habio.ResolvedTarget, error) { return fixtureTarget() }),
-		Observer: observerFunc(func(context.Context, habio.Action, habio.ResolvedTarget) ([]habio.Observation, error) {
-			return []habio.Observation{observation}, nil
+		Resolver: resolverFunc(func(context.Context, atoha.Action) (atoha.ResolvedTarget, error) { return fixtureTarget() }),
+		Observer: observerFunc(func(context.Context, atoha.Action, atoha.ResolvedTarget) ([]atoha.Observation, error) {
+			return []atoha.Observation{observation}, nil
 		}),
-		Verifier: verifierFunc(func(_ context.Context, _ habio.Action, observations []habio.Observation, asOf time.Time) (habio.VerificationResult, error) {
-			return habio.NewVerificationResult(habio.VerificationResultSpec{
-				Status: habio.VerificationVerified, Verifier: "fixture", CheckedAt: asOf,
-				ObservationIDs: []habio.ObservationID{observations[0].ID()}, Reason: "matches",
+		Verifier: verifierFunc(func(_ context.Context, _ atoha.Action, observations []atoha.Observation, asOf time.Time) (atoha.VerificationResult, error) {
+			return atoha.NewVerificationResult(atoha.VerificationResultSpec{
+				Status: atoha.VerificationVerified, Verifier: "fixture", CheckedAt: asOf,
+				ObservationIDs: []atoha.ObservationID{observations[0].ID()}, Reason: "matches",
 			})
 		}),
 		Journal: log, Reader: log, Actions: log, Now: func() time.Time { return testNow },
@@ -175,11 +175,11 @@ func TestVerifyIsSeparateAndPersistsObservationAssessment(t *testing.T) {
 		t.Fatal(err)
 	}
 	result, err := verify.Verify(context.Background(), VerifyInput{Action: action, AttemptID: "attempt-verify"})
-	if err != nil || result.Verification.Status() != habio.VerificationVerified {
+	if err != nil || result.Verification.Status() != atoha.VerificationVerified {
 		t.Fatalf("Verify() status/error = %v/%v", result.Verification.Status(), err)
 	}
 	view := mustGet(t, log, "attempt-verify")
-	if view.Verification != habio.VerificationVerified || view.Outcome.Effect() != habio.EffectObservedSatisfied {
+	if view.Verification != atoha.VerificationVerified || view.Outcome.Effect() != atoha.EffectObservedSatisfied {
 		t.Fatal("verification facts were not projected")
 	}
 }
@@ -187,31 +187,31 @@ func TestVerifyIsSeparateAndPersistsObservationAssessment(t *testing.T) {
 func TestVerifyRejectsChangedActionBeforeObservation(t *testing.T) {
 	log := memory.New()
 	action := mustAction(t, "action-verify-immutable")
-	executor := mustExecutor(t, log, providerFunc(func(_ context.Context, attempt habio.ExecutionAttempt, _ habio.Action, _ habio.ResolvedTarget) (habio.DispatchResult, error) {
-		return habio.NewDispatchResult(habio.DispatchResultSpec{Provider: "fixture", AttemptID: attempt.ID(), Status: habio.DispatchDispatched})
+	executor := mustExecutor(t, log, providerFunc(func(_ context.Context, attempt atoha.ExecutionAttempt, _ atoha.Action, _ atoha.ResolvedTarget) (atoha.DispatchResult, error) {
+		return atoha.NewDispatchResult(atoha.DispatchResultSpec{Provider: "fixture", AttemptID: attempt.ID(), Status: atoha.DispatchDispatched})
 	}))
 	if _, err := executor.Execute(context.Background(), ExecuteInput{Action: action, AttemptID: "attempt-verify-immutable"}); err != nil {
 		t.Fatal(err)
 	}
-	changed, _ := habio.NewAction(habio.ActionSpec{
+	changed, _ := atoha.NewAction(atoha.ActionSpec{
 		ID: action.ID(), Target: "bedroom-light", Name: action.Name(), Input: action.Input(), RequestedAt: action.RequestedAt(),
 	})
 	var observations atomic.Int32
 	verify, err := NewVerifyAttempt(VerifyConfig{
-		Resolver: resolverFunc(func(context.Context, habio.Action) (habio.ResolvedTarget, error) { return fixtureTarget() }),
-		Observer: observerFunc(func(context.Context, habio.Action, habio.ResolvedTarget) ([]habio.Observation, error) {
+		Resolver: resolverFunc(func(context.Context, atoha.Action) (atoha.ResolvedTarget, error) { return fixtureTarget() }),
+		Observer: observerFunc(func(context.Context, atoha.Action, atoha.ResolvedTarget) ([]atoha.Observation, error) {
 			observations.Add(1)
 			return nil, nil
 		}),
-		Verifier: verifierFunc(func(context.Context, habio.Action, []habio.Observation, time.Time) (habio.VerificationResult, error) {
-			return habio.VerificationResult{}, nil
+		Verifier: verifierFunc(func(context.Context, atoha.Action, []atoha.Observation, time.Time) (atoha.VerificationResult, error) {
+			return atoha.VerificationResult{}, nil
 		}),
 		Journal: log, Reader: log, Actions: log,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := verify.Verify(context.Background(), VerifyInput{Action: changed, AttemptID: "attempt-verify-immutable"}); !errors.Is(err, habio.ErrActionIdentityConflict) {
+	if _, err := verify.Verify(context.Background(), VerifyInput{Action: changed, AttemptID: "attempt-verify-immutable"}); !errors.Is(err, atoha.ErrActionIdentityConflict) {
 		t.Fatalf("Verify() error = %v; want action identity conflict", err)
 	}
 	if observations.Load() != 0 {
@@ -222,8 +222,8 @@ func TestVerifyRejectsChangedActionBeforeObservation(t *testing.T) {
 func TestRecoveryRequiresAuthorizationAndLinksPriorAttempt(t *testing.T) {
 	log := memory.New()
 	action := mustAction(t, "action-recovery")
-	executor := mustExecutor(t, log, providerFunc(func(_ context.Context, attempt habio.ExecutionAttempt, _ habio.Action, _ habio.ResolvedTarget) (habio.DispatchResult, error) {
-		return habio.NewDispatchResult(habio.DispatchResultSpec{Provider: "fixture", AttemptID: attempt.ID(), Status: habio.DispatchUnknown})
+	executor := mustExecutor(t, log, providerFunc(func(_ context.Context, attempt atoha.ExecutionAttempt, _ atoha.Action, _ atoha.ResolvedTarget) (atoha.DispatchResult, error) {
+		return atoha.NewDispatchResult(atoha.DispatchResultSpec{Provider: "fixture", AttemptID: attempt.ID(), Status: atoha.DispatchUnknown})
 	}))
 	if _, err := executor.Execute(context.Background(), ExecuteInput{Action: action, AttemptID: "attempt-original"}); err != nil {
 		t.Fatal(err)
@@ -251,7 +251,7 @@ func TestRecoveryRequiresAuthorizationAndLinksPriorAttempt(t *testing.T) {
 	events, _ := log.EventsByAttempt(context.Background(), "attempt-recovery")
 	found := false
 	for _, event := range events {
-		found = found || event.Kind() == habio.EventRecoveryAuthorized
+		found = found || event.Kind() == atoha.EventRecoveryAuthorized
 	}
 	if !found {
 		t.Fatal("recovery authorization fact was not recorded")
@@ -261,7 +261,7 @@ func TestRecoveryRequiresAuthorizationAndLinksPriorAttempt(t *testing.T) {
 func TestScanIncompleteAttemptsNeverRecoversAutomatically(t *testing.T) {
 	log := memory.New()
 	action := mustAction(t, "action-incomplete")
-	attempt, _ := habio.NewExecutionAttempt(habio.ExecutionAttemptSpec{ID: "attempt-incomplete", ActionID: action.ID(), StartedAt: testNow})
+	attempt, _ := atoha.NewExecutionAttempt(atoha.ExecutionAttemptSpec{ID: "attempt-incomplete", ActionID: action.ID(), StartedAt: testNow})
 	requested, _ := actionRequestedEvent(action, attempt.ID(), testNow)
 	started, _ := attemptStartedEvent(action, attempt, testNow)
 	claimed, err := log.BeginAttempt(context.Background(), action, attempt, requested, started)
@@ -278,13 +278,13 @@ func TestScanIncompleteAttemptsNeverRecoversAutomatically(t *testing.T) {
 	}
 }
 
-func mustExecutor(t *testing.T, journal Journal, provider habio.Provider) *ExecuteAction {
+func mustExecutor(t *testing.T, journal Journal, provider atoha.Provider) *ExecuteAction {
 	t.Helper()
 	executor, err := NewExecuteAction(ExecuteConfig{
-		Admitter: admitterFunc(func(context.Context, habio.Action) (habio.AdmissionStatus, error) {
-			return habio.AdmissionAdmitted, nil
+		Admitter: admitterFunc(func(context.Context, atoha.Action) (atoha.AdmissionStatus, error) {
+			return atoha.AdmissionAdmitted, nil
 		}),
-		Resolver: resolverFunc(func(context.Context, habio.Action) (habio.ResolvedTarget, error) { return fixtureTarget() }),
+		Resolver: resolverFunc(func(context.Context, atoha.Action) (atoha.ResolvedTarget, error) { return fixtureTarget() }),
 		Provider: provider, Journal: journal, Now: func() time.Time { return testNow },
 	})
 	if err != nil {
@@ -293,9 +293,9 @@ func mustExecutor(t *testing.T, journal Journal, provider habio.Provider) *Execu
 	return executor
 }
 
-func mustAction(t *testing.T, id habio.ActionID) habio.Action {
+func mustAction(t *testing.T, id atoha.ActionID) atoha.Action {
 	t.Helper()
-	action, err := habio.NewAction(habio.ActionSpec{
+	action, err := atoha.NewAction(atoha.ActionSpec{
 		ID: id, Target: "living-room-light", Name: "turn_on", Input: []byte(`{}`), RequestedAt: testNow,
 	})
 	if err != nil {
@@ -304,11 +304,11 @@ func mustAction(t *testing.T, id habio.ActionID) habio.Action {
 	return action
 }
 
-func fixtureTarget() (habio.ResolvedTarget, error) {
-	return habio.NewResolvedTarget("fixture", []byte("light.living_room"))
+func fixtureTarget() (atoha.ResolvedTarget, error) {
+	return atoha.NewResolvedTarget("fixture", []byte("light.living_room"))
 }
 
-func mustGet(t *testing.T, reader AttemptEventReader, id habio.AttemptID) AttemptView {
+func mustGet(t *testing.T, reader AttemptEventReader, id atoha.AttemptID) AttemptView {
 	t.Helper()
 	query, _ := NewGetAttempt(reader)
 	view, err := query.Get(context.Background(), id)
@@ -318,33 +318,33 @@ func mustGet(t *testing.T, reader AttemptEventReader, id habio.AttemptID) Attemp
 	return view
 }
 
-type admitterFunc func(context.Context, habio.Action) (habio.AdmissionStatus, error)
+type admitterFunc func(context.Context, atoha.Action) (atoha.AdmissionStatus, error)
 
-func (f admitterFunc) Admit(ctx context.Context, action habio.Action) (habio.AdmissionStatus, error) {
+func (f admitterFunc) Admit(ctx context.Context, action atoha.Action) (atoha.AdmissionStatus, error) {
 	return f(ctx, action)
 }
 
-type resolverFunc func(context.Context, habio.Action) (habio.ResolvedTarget, error)
+type resolverFunc func(context.Context, atoha.Action) (atoha.ResolvedTarget, error)
 
-func (f resolverFunc) Resolve(ctx context.Context, action habio.Action) (habio.ResolvedTarget, error) {
+func (f resolverFunc) Resolve(ctx context.Context, action atoha.Action) (atoha.ResolvedTarget, error) {
 	return f(ctx, action)
 }
 
-type providerFunc func(context.Context, habio.ExecutionAttempt, habio.Action, habio.ResolvedTarget) (habio.DispatchResult, error)
+type providerFunc func(context.Context, atoha.ExecutionAttempt, atoha.Action, atoha.ResolvedTarget) (atoha.DispatchResult, error)
 
-func (f providerFunc) Dispatch(ctx context.Context, attempt habio.ExecutionAttempt, action habio.Action, target habio.ResolvedTarget) (habio.DispatchResult, error) {
+func (f providerFunc) Dispatch(ctx context.Context, attempt atoha.ExecutionAttempt, action atoha.Action, target atoha.ResolvedTarget) (atoha.DispatchResult, error) {
 	return f(ctx, attempt, action, target)
 }
 
-type observerFunc func(context.Context, habio.Action, habio.ResolvedTarget) ([]habio.Observation, error)
+type observerFunc func(context.Context, atoha.Action, atoha.ResolvedTarget) ([]atoha.Observation, error)
 
-func (f observerFunc) Observe(ctx context.Context, action habio.Action, target habio.ResolvedTarget) ([]habio.Observation, error) {
+func (f observerFunc) Observe(ctx context.Context, action atoha.Action, target atoha.ResolvedTarget) ([]atoha.Observation, error) {
 	return f(ctx, action, target)
 }
 
-type verifierFunc func(context.Context, habio.Action, []habio.Observation, time.Time) (habio.VerificationResult, error)
+type verifierFunc func(context.Context, atoha.Action, []atoha.Observation, time.Time) (atoha.VerificationResult, error)
 
-func (f verifierFunc) Verify(ctx context.Context, action habio.Action, observations []habio.Observation, at time.Time) (habio.VerificationResult, error) {
+func (f verifierFunc) Verify(ctx context.Context, action atoha.Action, observations []atoha.Observation, at time.Time) (atoha.VerificationResult, error) {
 	return f(ctx, action, observations, at)
 }
 
@@ -355,7 +355,7 @@ type failAppendJournal struct {
 	err         error
 }
 
-func (j *failAppendJournal) AppendAll(ctx context.Context, events ...habio.ExecutionEvent) error {
+func (j *failAppendJournal) AppendAll(ctx context.Context, events ...atoha.ExecutionEvent) error {
 	j.appendCalls++
 	if j.appendCalls == j.failAt {
 		return j.err

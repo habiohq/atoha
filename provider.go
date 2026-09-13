@@ -1,4 +1,4 @@
-package habio
+package atoha
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	ErrInvalidResolvedTarget = errors.New("habio: invalid resolved target")
-	ErrInvalidReceipt        = errors.New("habio: invalid receipt")
-	ErrInvalidDispatchResult = errors.New("habio: invalid dispatch result")
+	ErrInvalidResolvedTarget = errors.New("atoha: invalid resolved target")
+	ErrInvalidReceipt        = errors.New("atoha: invalid receipt")
+	ErrInvalidDispatchResult = errors.New("atoha: invalid dispatch result")
 )
 
 // ResolvedTarget is an immutable provider-specific endpoint derived from a
@@ -162,7 +162,7 @@ type Resolver interface {
 	Resolve(ctx context.Context, action Action) (ResolvedTarget, error)
 }
 
-// Admitter supplies application or domain policy at Habio's enforcement point.
+// Admitter supplies application or domain policy at Atoha's enforcement point.
 // AdmissionStatus and error remain separate for the same reason as Outcome and
 // transport errors.
 type Admitter interface {

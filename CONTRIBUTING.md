@@ -1,6 +1,6 @@
-# Contributing to Habio
+# Contributing to Atoha
 
-Habio is early. Contributions that sharpen the execution boundary and test its
+Atoha is early. Contributions that sharpen the execution boundary and test its
 semantics against real physical-system behavior are especially valuable.
 
 ## Before proposing a change
@@ -14,7 +14,7 @@ semantics against real physical-system behavior are especially valuable.
 
 ## Development
 
-Habio uses Go. Until code beyond the package skeleton exists, the baseline
+Atoha uses Go. Until code beyond the package skeleton exists, the baseline
 checks are:
 
 ```sh

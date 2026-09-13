@@ -3,7 +3,7 @@
 ## Status and boundary
 
 This document defines the portability boundary for a future Strategy layer. It
-does not add Strategy concepts to the Habio execution package and is not a
+does not add Strategy concepts to the Atoha execution package and is not a
 runtime, language, sandbox, scheduler, conflict engine, or marketplace format.
 
 ```text
@@ -15,12 +15,12 @@ typed Action proposals
     |
 application admission and conflict handling
     |
-Habio execution core
+Atoha execution core
     |
 Provider
 ```
 
-A Strategy decides what should happen. Habio records what happened when an
+A Strategy decides what should happen. Atoha records what happened when an
 approved Action crossed the physical execution boundary.
 
 ## Portable unit
@@ -42,7 +42,7 @@ Each slot includes a human explanation and the operation signatures the
 Strategy intends to produce.
 
 For example, `vehicle-charger` is local to one Strategy package. It does not
-claim that Habio has standardized every EV charger. Another Strategy can use a
+claim that Atoha has standardized every EV charger. Another Strategy can use a
 different vocabulary and a catalog can later publish compatible conventions.
 
 ### Data inputs
@@ -87,7 +87,7 @@ Strategy logical requirement
         |
 installation binding
         |
-Habio Resolver / data source
+Atoha Resolver / data source
         |
 provider endpoint or external service
 ```
@@ -98,7 +98,7 @@ values such as `climate.living_room`, a vehicle serial number, account ID, or
 vendor token.
 
 Binding validation checks only the Strategy's declared operation and data
-schemas. It does not require Habio core to own a universal capability taxonomy.
+schemas. It does not require Atoha core to own a universal capability taxonomy.
 
 ## Authoring and approval
 
@@ -123,10 +123,10 @@ decision.
 
 A Strategy evaluation produces zero or more Action proposals plus diagnostic
 facts. It does not dispatch them. The application assigns Action identity,
-performs admission and conflict handling, and then invokes Habio.
+performs admission and conflict handling, and then invokes Atoha.
 
 Proposals refer to logical requirement slots. Installation binding resolves
-them before dispatch. Strategy evaluation errors are not Habio physical
+them before dispatch. Strategy evaluation errors are not Atoha physical
 outcomes.
 
 ## Conflicts and ownership
@@ -159,7 +159,7 @@ This pseudo-manifest illustrates local names; it is not a frozen serialization
 format:
 
 ```yaml
-contract: habio-strategy/v0alpha1
+contract: atoha-strategy/v0alpha1
 name: example.org/solar-first-charging
 version: 0.1.0
 

@@ -1,7 +1,7 @@
 # RFC 0007: Application execution and explicit recovery
 
 - Status: Accepted
-- Authors: Habio maintainers
+- Authors: Atoha maintainers
 - Created: 2026-09-12
 - Related issues: #3, #4, #5, #6
 
@@ -81,7 +81,7 @@ unbounded background work.
 ### Event data
 
 Application-emitted opaque event data uses JSON schema identifier
-`habio.execution.event/v1`. EventKind remains the authoritative fact; payload
+`atoha.execution.event/v1`. EventKind remains the authoritative fact; payload
 data carries audit details such as provider receipt, observations, errors, and
 recovery authorization.
 

@@ -1,4 +1,4 @@
-package habio
+package atoha
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 // ObservationID identifies one immutable piece of observed evidence.
 type ObservationID string
 
-var ErrInvalidObservation = errors.New("habio: invalid observation")
+var ErrInvalidObservation = errors.New("atoha: invalid observation")
 
 // ObservationSpec contains evidence obtained from a Provider or another
 // physical-world source. Value and Evidence are opaque to the core.
@@ -26,7 +26,7 @@ type ObservationSpec struct {
 // Observation is immutable evidence, not absolute truth.
 //
 // ObservedAt is the source's time for the observation. RecordedAt is when the
-// observation entered Habio. Keeping both lets a Verifier apply an explicit
+// observation entered Atoha. Keeping both lets a Verifier apply an explicit
 // freshness policy without trusting ingestion time as physical freshness.
 // The zero value is invalid.
 type Observation struct {
@@ -87,5 +87,5 @@ func (o Observation) Evidence() []byte { return cloneBytes(o.evidence) }
 // ObservedAt returns the source's time for the observation.
 func (o Observation) ObservedAt() time.Time { return o.observedAt }
 
-// RecordedAt returns when the observation entered Habio.
+// RecordedAt returns when the observation entered Atoha.
 func (o Observation) RecordedAt() time.Time { return o.recordedAt }

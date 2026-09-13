@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/habiohq/habio"
+	"github.com/habiohq/atoha"
 )
 
 // EventDataSchemaV1 identifies the JSON event payload schema emitted by this
 // application package. EventKind remains the authoritative semantic fact.
-const EventDataSchemaV1 = "habio.execution.event/v1"
+const EventDataSchemaV1 = "atoha.execution.event/v1"
 
 type actionRequestedPayload struct {
 	Schema      string    `json:"schema"`
@@ -22,12 +22,12 @@ type actionRequestedPayload struct {
 type attemptStartedPayload struct {
 	Schema     string          `json:"schema"`
 	StartedAt  time.Time       `json:"started_at"`
-	RecoveryOf habio.AttemptID `json:"recovery_of,omitempty"`
+	RecoveryOf atoha.AttemptID `json:"recovery_of,omitempty"`
 }
 
 type recoveryAuthorizedPayload struct {
 	Schema            string          `json:"schema"`
-	PreviousAttemptID habio.AttemptID `json:"previous_attempt_id"`
+	PreviousAttemptID atoha.AttemptID `json:"previous_attempt_id"`
 	AuthorizedBy      string          `json:"authorized_by"`
 	AuthorizedAt      time.Time       `json:"authorized_at"`
 	Reason            string          `json:"reason"`
@@ -57,7 +57,7 @@ type receiptPayload struct {
 
 type observationPayload struct {
 	Schema     string              `json:"schema"`
-	ID         habio.ObservationID `json:"id"`
+	ID         atoha.ObservationID `json:"id"`
 	Source     string              `json:"source"`
 	Target     string              `json:"target"`
 	Value      []byte              `json:"value,omitempty"`
@@ -71,7 +71,7 @@ type verificationPayload struct {
 	Status         string                `json:"status"`
 	Verifier       string                `json:"verifier"`
 	CheckedAt      time.Time             `json:"checked_at"`
-	ObservationIDs []habio.ObservationID `json:"observation_ids,omitempty"`
+	ObservationIDs []atoha.ObservationID `json:"observation_ids,omitempty"`
 	Reason         string                `json:"reason,omitempty"`
 	Error          string                `json:"error,omitempty"`
 }

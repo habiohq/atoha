@@ -1,7 +1,7 @@
 # RFC 0004: Provider extension contract
 
 - Status: Accepted
-- Authors: Habio maintainers
+- Authors: Atoha maintainers
 - Created: 2026-09-06
 - Related issues: #5
 

@@ -1,4 +1,4 @@
-package habio
+package atoha
 
 import (
 	"errors"
@@ -56,7 +56,7 @@ const (
 	EffectObservedUnsatisfied
 )
 
-var ErrInvalidOutcome = errors.New("habio: invalid outcome")
+var ErrInvalidOutcome = errors.New("atoha: invalid outcome")
 
 // OutcomeSpec describes independent knowledge about admission, dispatch, and
 // physical effect. The axes are deliberately not collapsed into success or

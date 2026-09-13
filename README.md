@@ -1,16 +1,16 @@
-# Habio
+# Atoha
 
-Habio is open execution infrastructure for AI-controlled physical systems.
+Atoha is open execution infrastructure for AI-controlled physical systems.
 
 > Models decide what should happen. Hardware platforms know how to make it
-> happen. Habio defines what it means for that action to have happened.
+> happen. Atoha defines what it means for that action to have happened.
 
-Habio is intended to be a small, deterministic execution boundary between
+Atoha is intended to be a small, deterministic execution boundary between
 probabilistic software and the physical world. The first vertical is the smart
 home; the execution semantics are deliberately not tied to a smart-home device
 model.
 
-## Why Habio?
+## Why Atoha?
 
 In a physical system, a successful tool call does not prove a successful
 physical outcome:
@@ -25,7 +25,7 @@ tool call succeeded
 
 A timeout can mean that nothing happened, or that the action happened and only
 the response was lost. Blindly converting that uncertainty into failure and
-retrying can be unsafe. Habio preserves the distinction and gives the caller
+retrying can be unsafe. Atoha preserves the distinction and gives the caller
 enough evidence to make an explicit recovery decision.
 
 ## Scope
@@ -55,7 +55,7 @@ Claude / ChatGPT / custom agent
               |
               v
         +-----------+
-        |   Habio   |
+        |   Atoha   |
         |           |
         | Action    |
         | Attempt   |
@@ -95,7 +95,7 @@ The ecosystem succeeds when it can grow without growing the core.
 
 ## Status
 
-Habio is in its foundation phase. The repository includes provider-independent
+Atoha is in its foundation phase. The repository includes provider-independent
 core contracts, application use cases, memory and SQLite Journals, a strict HTTP
 adapter, a local server composition root, and a Home Assistant proof of concept.
 The public API is not yet stable. The proof exercises light, climate, and
