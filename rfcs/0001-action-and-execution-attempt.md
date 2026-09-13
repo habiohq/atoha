@@ -1,7 +1,7 @@
 # RFC 0001: Action and ExecutionAttempt
 
 - Status: Accepted
-- Authors: Habio maintainers
+- Authors: Atoha maintainers
 - Created: 2026-09-06
 - Related issues: #2
 
@@ -15,7 +15,7 @@ prior attempt it recovers, but this relationship makes no replay-safety claim.
 
 One physical intent can have more than one attempt after an ambiguous result.
 Using one identity for both loses the distinction between deduplicating a
-request and repeating a physical operation. Habio needs both identities to
+request and repeating a physical operation. Atoha needs both identities to
 record recovery without rewriting history.
 
 ## Proposal

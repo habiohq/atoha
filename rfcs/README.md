@@ -1,4 +1,4 @@
-# Habio RFCs
+# Atoha RFCs
 
 RFCs record durable design decisions that affect execution semantics,
 extension contracts, repository boundaries, or ecosystem interoperability.

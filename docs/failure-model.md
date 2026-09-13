@@ -13,7 +13,7 @@ request timeout
 The command may not have arrived, may have been accepted but not executed, may
 have executed without changing the world as expected, or may have executed with
 only its response lost. When available evidence cannot distinguish those cases,
-Habio reports an unknown outcome.
+Atoha reports an unknown outcome.
 
 ## Knowledge dimensions
 
@@ -55,7 +55,7 @@ must preserve evidence received before context cancellation.
 
 ## Retry and replay
 
-Habio does not silently retry an ambiguous physical action. A recovery policy
+Atoha does not silently retry an ambiguous physical action. A recovery policy
 needs evidence about protocol, provider, device, and world-state idempotency.
 
 Every repeated attempt receives its own attempt identity and refers to the same

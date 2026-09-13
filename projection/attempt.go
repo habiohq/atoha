@@ -1,26 +1,26 @@
-// Package projection contains rebuildable views derived from Habio facts.
+// Package projection contains rebuildable views derived from Atoha facts.
 package projection
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/habiohq/habio"
+	"github.com/habiohq/atoha"
 )
 
 var (
-	ErrInvalidIdentity = errors.New("habio projection: invalid identity")
-	ErrUnrelatedEvent  = errors.New("habio projection: unrelated event")
+	ErrInvalidIdentity = errors.New("atoha projection: invalid identity")
+	ErrUnrelatedEvent  = errors.New("atoha projection: unrelated event")
 )
 
 // Attempt is a rebuildable current view for one ExecutionAttempt.
 type Attempt struct {
-	actionID     habio.ActionID
-	attemptID    habio.AttemptID
-	admission    habio.AdmissionStatus
-	dispatch     habio.DispatchStatus
-	effect       habio.EffectStatus
-	verification habio.VerificationStatus
+	actionID     atoha.ActionID
+	attemptID    atoha.AttemptID
+	admission    atoha.AdmissionStatus
+	dispatch     atoha.DispatchStatus
+	effect       atoha.EffectStatus
+	verification atoha.VerificationStatus
 
 	admissionConflicted bool
 	dispatchConflicted  bool
@@ -28,7 +28,7 @@ type Attempt struct {
 }
 
 // NewAttempt creates an empty, fully unknown view.
-func NewAttempt(actionID habio.ActionID, attemptID habio.AttemptID) (*Attempt, error) {
+func NewAttempt(actionID atoha.ActionID, attemptID atoha.AttemptID) (*Attempt, error) {
 	if actionID == "" || attemptID == "" {
 		return nil, ErrInvalidIdentity
 	}
@@ -39,7 +39,7 @@ func NewAttempt(actionID habio.ActionID, attemptID habio.AttemptID) (*Attempt, e
 // events therefore remain visible in the append log. Weaker dispatch knowledge
 // never replaces stronger knowledge, while incompatible claims mark the view
 // conflicted and return the affected dimension to unknown.
-func (p *Attempt) Apply(event habio.ExecutionEvent) error {
+func (p *Attempt) Apply(event atoha.ExecutionEvent) error {
 	if event.ActionID() != p.actionID {
 		return fmt.Errorf("%w: action %s", ErrUnrelatedEvent, event.ActionID())
 	}
@@ -48,48 +48,48 @@ func (p *Attempt) Apply(event habio.ExecutionEvent) error {
 	}
 
 	switch event.Kind() {
-	case habio.EventActionRequested, habio.EventAttemptStarted, habio.EventRecoveryAuthorized, habio.EventObservationRecorded:
-	case habio.EventActionAdmitted:
-		p.mergeAdmission(habio.AdmissionAdmitted)
-	case habio.EventActionRejected:
-		p.mergeAdmission(habio.AdmissionRejected)
-		p.mergeDispatch(habio.DispatchNotDispatched)
-	case habio.EventDispatchUnknown:
+	case atoha.EventActionRequested, atoha.EventAttemptStarted, atoha.EventRecoveryAuthorized, atoha.EventObservationRecorded:
+	case atoha.EventActionAdmitted:
+		p.mergeAdmission(atoha.AdmissionAdmitted)
+	case atoha.EventActionRejected:
+		p.mergeAdmission(atoha.AdmissionRejected)
+		p.mergeDispatch(atoha.DispatchNotDispatched)
+	case atoha.EventDispatchUnknown:
 		// Unknown facts do not erase stronger evidence already recorded.
-	case habio.EventNotDispatched:
-		p.mergeDispatch(habio.DispatchNotDispatched)
-	case habio.EventActionDispatched:
-		p.mergeDispatch(habio.DispatchDispatched)
-	case habio.EventProviderAcknowledged:
-		p.mergeDispatch(habio.DispatchAcknowledged)
-	case habio.EventEffectUnknown:
-	case habio.EventEffectUnverified:
-		p.mergeEffect(habio.EffectUnverified)
-	case habio.EventEffectObservedSatisfied:
-		p.mergeEffect(habio.EffectObservedSatisfied)
-	case habio.EventEffectObservedUnsatisfied:
-		p.mergeEffect(habio.EffectObservedUnsatisfied)
-	case habio.EventVerificationVerified:
-		p.verification = habio.VerificationVerified
-	case habio.EventVerificationUnsatisfied:
-		p.verification = habio.VerificationUnsatisfied
-	case habio.EventVerificationInconclusive:
-		if p.verification == habio.VerificationUnknown {
-			p.verification = habio.VerificationInconclusive
+	case atoha.EventNotDispatched:
+		p.mergeDispatch(atoha.DispatchNotDispatched)
+	case atoha.EventActionDispatched:
+		p.mergeDispatch(atoha.DispatchDispatched)
+	case atoha.EventProviderAcknowledged:
+		p.mergeDispatch(atoha.DispatchAcknowledged)
+	case atoha.EventEffectUnknown:
+	case atoha.EventEffectUnverified:
+		p.mergeEffect(atoha.EffectUnverified)
+	case atoha.EventEffectObservedSatisfied:
+		p.mergeEffect(atoha.EffectObservedSatisfied)
+	case atoha.EventEffectObservedUnsatisfied:
+		p.mergeEffect(atoha.EffectObservedUnsatisfied)
+	case atoha.EventVerificationVerified:
+		p.verification = atoha.VerificationVerified
+	case atoha.EventVerificationUnsatisfied:
+		p.verification = atoha.VerificationUnsatisfied
+	case atoha.EventVerificationInconclusive:
+		if p.verification == atoha.VerificationUnknown {
+			p.verification = atoha.VerificationInconclusive
 		}
 	}
 	return nil
 }
 
 // Outcome returns the current orthogonal knowledge projection.
-func (p *Attempt) Outcome() habio.Outcome {
-	outcome, _ := habio.NewOutcome(habio.OutcomeSpec{
+func (p *Attempt) Outcome() atoha.Outcome {
+	outcome, _ := atoha.NewOutcome(atoha.OutcomeSpec{
 		Admission: p.admission, Dispatch: p.dispatch, Effect: p.effect,
 	})
 	return outcome
 }
 
-func (p *Attempt) Verification() habio.VerificationStatus { return p.verification }
+func (p *Attempt) Verification() atoha.VerificationStatus { return p.verification }
 
 // Conflicted reports whether any outcome dimension contains incompatible facts.
 func (p *Attempt) Conflicted() bool {
@@ -105,48 +105,48 @@ func (p *Attempt) DispatchConflicted() bool { return p.dispatchConflicted }
 // EffectConflicted reports whether effect contains incompatible facts.
 func (p *Attempt) EffectConflicted() bool { return p.effectConflicted }
 
-func (p *Attempt) mergeAdmission(next habio.AdmissionStatus) {
+func (p *Attempt) mergeAdmission(next atoha.AdmissionStatus) {
 	if p.admissionConflicted {
 		return
 	}
-	if p.admission == habio.AdmissionUnknown || p.admission == next {
+	if p.admission == atoha.AdmissionUnknown || p.admission == next {
 		p.admission = next
 		return
 	}
-	p.admission = habio.AdmissionUnknown
+	p.admission = atoha.AdmissionUnknown
 	p.admissionConflicted = true
 }
 
-func (p *Attempt) mergeDispatch(next habio.DispatchStatus) {
+func (p *Attempt) mergeDispatch(next atoha.DispatchStatus) {
 	if p.dispatchConflicted {
 		return
 	}
-	if p.dispatch == habio.DispatchUnknown || p.dispatch == next {
+	if p.dispatch == atoha.DispatchUnknown || p.dispatch == next {
 		p.dispatch = next
 		return
 	}
-	if p.dispatch == habio.DispatchDispatched && next == habio.DispatchAcknowledged {
+	if p.dispatch == atoha.DispatchDispatched && next == atoha.DispatchAcknowledged {
 		p.dispatch = next
 		return
 	}
-	if p.dispatch == habio.DispatchAcknowledged && next == habio.DispatchDispatched {
+	if p.dispatch == atoha.DispatchAcknowledged && next == atoha.DispatchDispatched {
 		return
 	}
-	p.dispatch = habio.DispatchUnknown
+	p.dispatch = atoha.DispatchUnknown
 	p.dispatchConflicted = true
 }
 
-func (p *Attempt) mergeEffect(next habio.EffectStatus) {
+func (p *Attempt) mergeEffect(next atoha.EffectStatus) {
 	if p.effectConflicted {
 		return
 	}
-	if p.effect == habio.EffectUnknown || p.effect == next || p.effect == habio.EffectUnverified {
+	if p.effect == atoha.EffectUnknown || p.effect == next || p.effect == atoha.EffectUnverified {
 		p.effect = next
 		return
 	}
-	if next == habio.EffectUnverified {
+	if next == atoha.EffectUnverified {
 		return
 	}
-	p.effect = habio.EffectUnknown
+	p.effect = atoha.EffectUnknown
 	p.effectConflicted = true
 }

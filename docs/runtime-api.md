@@ -1,6 +1,6 @@
 # Local runtime and HTTP API
 
-`cmd/habio-server` is the reference composition root. It wires the HTTP adapter
+`cmd/atoha-server` is the reference composition root. It wires the HTTP adapter
 to application use cases, a durable SQLite Journal, and the Home Assistant
 anti-corruption layer. Core imports none of these packages.
 
@@ -10,27 +10,27 @@ Required environment variables:
 
 | Variable | Meaning |
 | --- | --- |
-| `HABIO_HOME_ASSISTANT_URL` | Absolute local Home Assistant HTTP(S) URL. |
-| `HABIO_HOME_ASSISTANT_TOKEN` | Home Assistant long-lived access token. |
-| `HABIO_HOME_ASSISTANT_BINDINGS` | JSON object mapping logical target names to entity IDs. |
+| `ATOHA_HOME_ASSISTANT_URL` | Absolute local Home Assistant HTTP(S) URL. |
+| `ATOHA_HOME_ASSISTANT_TOKEN` | Home Assistant long-lived access token. |
+| `ATOHA_HOME_ASSISTANT_BINDINGS` | JSON object mapping logical target names to entity IDs. |
 
 Optional variables:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `HABIO_LISTEN` | `127.0.0.1:8080` | HTTP listen address. |
-| `HABIO_DATABASE` | `habio.db` | SQLite file path. |
-| `HABIO_API_TOKEN` | empty on loopback | Bearer token for every endpoint except health. Required on a non-loopback address. |
-| `HABIO_PROVIDER_TIMEOUT` | `10s` | One Home Assistant request timeout. A timeout remains dispatch-unknown. |
-| `HABIO_VERIFICATION_MAX_AGE` | `30s` | Maximum accepted Home Assistant observation age. |
+| `ATOHA_LISTEN` | `127.0.0.1:8080` | HTTP listen address. |
+| `ATOHA_DATABASE` | `atoha.db` | SQLite file path. |
+| `ATOHA_API_TOKEN` | empty on loopback | Bearer token for every endpoint except health. Required on a non-loopback address. |
+| `ATOHA_PROVIDER_TIMEOUT` | `10s` | One Home Assistant request timeout. A timeout remains dispatch-unknown. |
+| `ATOHA_VERIFICATION_MAX_AGE` | `30s` | Maximum accepted Home Assistant observation age. |
 
 Example local launch:
 
 ```sh
-export HABIO_HOME_ASSISTANT_URL=http://home-assistant.local:8123
-export HABIO_HOME_ASSISTANT_TOKEN=replace-with-local-token
-export HABIO_HOME_ASSISTANT_BINDINGS='{"living-room-light":"light.living_room"}'
-go run ./cmd/habio-server
+export ATOHA_HOME_ASSISTANT_URL=http://home-assistant.local:8123
+export ATOHA_HOME_ASSISTANT_TOKEN=replace-with-local-token
+export ATOHA_HOME_ASSISTANT_BINDINGS='{"living-room-light":"light.living_room"}'
+go run ./cmd/atoha-server
 ```
 
 The reference runtime uses an allow-all Admitter after HTTP authentication. It
@@ -69,7 +69,7 @@ error:
   "dispatch": "unknown",
   "effect": "unknown",
   "provider": "homeassistant",
-  "operation_error": "habio execution dispatch: context deadline exceeded"
+  "operation_error": "atoha execution dispatch: context deadline exceeded"
 }
 ```
 

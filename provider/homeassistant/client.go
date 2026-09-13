@@ -33,7 +33,7 @@ type externalState struct {
 	Raw         []byte
 }
 
-// haClient is the provider-owned external-system port and exposes no Habio types.
+// haClient is the provider-owned external-system port and exposes no Atoha types.
 type haClient interface {
 	callService(context.Context, serviceRequest) (serviceResponse, error)
 	getState(context.Context, string) (externalState, error)

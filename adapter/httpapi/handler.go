@@ -1,4 +1,4 @@
-// Package httpapi exposes Habio application use cases without changing their
+// Package httpapi exposes Atoha application use cases without changing their
 // uncertainty semantics.
 package httpapi
 
@@ -12,8 +12,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/habiohq/habio"
-	"github.com/habiohq/habio/execution"
+	"github.com/habiohq/atoha"
+	"github.com/habiohq/atoha/execution"
 )
 
 const maxRequestSize = 1 << 20
@@ -35,7 +35,7 @@ type Recoverer interface {
 
 // AttemptGetter reads a projected attempt view.
 type AttemptGetter interface {
-	Get(context.Context, habio.AttemptID) (execution.AttemptView, error)
+	Get(context.Context, atoha.AttemptID) (execution.AttemptView, error)
 }
 
 // IncompleteScanner reports attempts that require inspection.
@@ -53,7 +53,7 @@ type Config struct {
 	APIToken   string
 }
 
-// Handler implements the reference Habio HTTP API.
+// Handler implements the reference Atoha HTTP API.
 type Handler struct {
 	executor   Executor
 	verifier   Verifier
@@ -67,7 +67,7 @@ type Handler struct {
 // New constructs a strict HTTP handler from application-level ports.
 func New(config Config) (*Handler, error) {
 	if config.Executor == nil || config.Verifier == nil || config.Recoverer == nil || config.GetAttempt == nil || config.Scanner == nil {
-		return nil, errors.New("habio http api: all use cases are required")
+		return nil, errors.New("atoha http api: all use cases are required")
 	}
 	h := &Handler{
 		executor: config.Executor, verifier: config.Verifier, recoverer: config.Recoverer,
@@ -94,37 +94,37 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type actionRequest struct {
-	ID          habio.ActionID  `json:"id"`
+	ID          atoha.ActionID  `json:"id"`
 	Target      string          `json:"target"`
 	Name        string          `json:"name"`
 	Input       json.RawMessage `json:"input,omitempty"`
 	RequestedAt time.Time       `json:"requested_at"`
 }
 
-func (r actionRequest) action() (habio.Action, error) {
-	return habio.NewAction(habio.ActionSpec{
+func (r actionRequest) action() (atoha.Action, error) {
+	return atoha.NewAction(atoha.ActionSpec{
 		ID: r.ID, Target: r.Target, Name: r.Name, Input: r.Input, RequestedAt: r.RequestedAt,
 	})
 }
 
 type executeRequest struct {
 	Action    actionRequest   `json:"action"`
-	AttemptID habio.AttemptID `json:"attempt_id"`
+	AttemptID atoha.AttemptID `json:"attempt_id"`
 }
 
 type recoverRequest struct {
 	Action       actionRequest   `json:"action"`
-	AttemptID    habio.AttemptID `json:"attempt_id"`
-	Previous     habio.AttemptID `json:"previous_attempt_id"`
+	AttemptID    atoha.AttemptID `json:"attempt_id"`
+	Previous     atoha.AttemptID `json:"previous_attempt_id"`
 	AuthorizedBy string          `json:"authorized_by"`
 	AuthorizedAt time.Time       `json:"authorized_at"`
 	Reason       string          `json:"reason"`
 }
 
 type executeResponse struct {
-	ActionID       habio.ActionID  `json:"action_id"`
-	AttemptID      habio.AttemptID `json:"attempt_id"`
-	RecoveryOf     habio.AttemptID `json:"recovery_of,omitempty"`
+	ActionID       atoha.ActionID  `json:"action_id"`
+	AttemptID      atoha.AttemptID `json:"attempt_id"`
+	RecoveryOf     atoha.AttemptID `json:"recovery_of,omitempty"`
 	Admission      string          `json:"admission"`
 	Dispatch       string          `json:"dispatch"`
 	Effect         string          `json:"effect"`
@@ -133,11 +133,11 @@ type executeResponse struct {
 }
 
 type verifyResponse struct {
-	ActionID       habio.ActionID        `json:"action_id"`
-	AttemptID      habio.AttemptID       `json:"attempt_id"`
+	ActionID       atoha.ActionID        `json:"action_id"`
+	AttemptID      atoha.AttemptID       `json:"attempt_id"`
 	Status         string                `json:"status"`
 	Verifier       string                `json:"verifier,omitempty"`
-	ObservationIDs []habio.ObservationID `json:"observation_ids,omitempty"`
+	ObservationIDs []atoha.ObservationID `json:"observation_ids,omitempty"`
 	Reason         string                `json:"reason,omitempty"`
 	OperationError string                `json:"operation_error,omitempty"`
 }
@@ -195,7 +195,7 @@ func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, operationErr := h.verifier.Verify(r.Context(), execution.VerifyInput{Action: action, AttemptID: request.AttemptID})
-	if result.AttemptID == "" || errors.Is(operationErr, habio.ErrActionIdentityConflict) {
+	if result.AttemptID == "" || errors.Is(operationErr, atoha.ErrActionIdentityConflict) {
 		writeUseCaseError(w, operationErr)
 		return
 	}
@@ -211,7 +211,7 @@ func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
-	view, err := h.getAttempt.Get(r.Context(), habio.AttemptID(r.PathValue("attempt_id")))
+	view, err := h.getAttempt.Get(r.Context(), atoha.AttemptID(r.PathValue("attempt_id")))
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
@@ -238,7 +238,7 @@ func (h *Handler) scan(w http.ResponseWriter, r *http.Request) {
 func writeExecution(w http.ResponseWriter, result execution.ExecuteResult, err error) {
 	if result.Attempt.ID() == "" || errors.Is(err, execution.ErrAttemptAlreadyStarted) ||
 		errors.Is(err, execution.ErrRecoveryNotAuthorized) || errors.Is(err, execution.ErrActionMismatch) ||
-		errors.Is(err, habio.ErrActionIdentityConflict) {
+		errors.Is(err, atoha.ErrActionIdentityConflict) {
 		writeUseCaseError(w, err)
 		return
 	}
@@ -259,11 +259,11 @@ func writeExecution(w http.ResponseWriter, result execution.ExecuteResult, err e
 func writeUseCaseError(w http.ResponseWriter, err error) {
 	status := http.StatusInternalServerError
 	switch {
-	case errors.Is(err, execution.ErrInvalidInput), errors.Is(err, execution.ErrRecoveryNotAuthorized), errors.Is(err, habio.ErrInvalidAction):
+	case errors.Is(err, execution.ErrInvalidInput), errors.Is(err, execution.ErrRecoveryNotAuthorized), errors.Is(err, atoha.ErrInvalidAction):
 		status = http.StatusBadRequest
 	case errors.Is(err, execution.ErrAttemptNotFound):
 		status = http.StatusNotFound
-	case errors.Is(err, execution.ErrAttemptAlreadyStarted), errors.Is(err, execution.ErrActionMismatch), errors.Is(err, habio.ErrActionIdentityConflict):
+	case errors.Is(err, execution.ErrAttemptAlreadyStarted), errors.Is(err, execution.ErrActionMismatch), errors.Is(err, atoha.ErrActionIdentityConflict):
 		status = http.StatusConflict
 	}
 	message := "internal error"

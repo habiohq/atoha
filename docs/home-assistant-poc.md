@@ -2,11 +2,11 @@
 
 ## Purpose
 
-The `provider/homeassistant` package tests Habio's execution semantics against
+The `provider/homeassistant` package tests Atoha's execution semantics against
 Home Assistant without making Home Assistant part of core. It is intentionally
 a proof, not a production integration or device model.
 
-Internally it is an anti-corruption layer: `Provider` is the Habio-facing
+Internally it is an anti-corruption layer: `Provider` is the Atoha-facing
 facade, `translator.go` owns entity/service conversion and binding validation,
 and `client.go` owns Home Assistant REST DTOs and transport behavior.
 
@@ -23,7 +23,7 @@ References:
 - <https://developers.home-assistant.io/blog/2024/07/16/service-actions/>
 
 Home Assistant notes that the service-action response contains states changed
-during execution, including changes caused by something else. Habio therefore
+during execution, including changes caused by something else. Atoha therefore
 treats a successful response as Provider acknowledgement only and performs a
 separate state observation and verification.
 
@@ -48,7 +48,7 @@ The fixtures exercise:
 - `turn_off` for a media-player entity.
 
 These are provider fixtures. No Light, AirConditioner, or TV type exists in the
-Habio core.
+Atoha core.
 
 ## Failure semantics
 
@@ -83,13 +83,13 @@ independent source.
 ## Local usage boundary
 
 The package needs only a local Home Assistant base URL and token. It has no
-Habio Cloud endpoint, account, or network dependency beyond the configured Home
+Atoha Cloud endpoint, account, or network dependency beyond the configured Home
 Assistant instance.
 
-The runnable composition root is `cmd/habio-server`; configuration and request
+The runnable composition root is `cmd/atoha-server`; configuration and request
 examples are documented in [runtime-api.md](runtime-api.md).
 
 The implementation remains in this repository during semantic discovery. It
 should move only when its dependency/release cycle is independent enough to
-justify `habio-server` or `habio-provider-homeassistant`; repository topology is
+justify `atoha-server` or `atoha-provider-homeassistant`; repository topology is
 not used as a substitute for a stable contract.

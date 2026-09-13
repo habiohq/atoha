@@ -9,17 +9,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/habiohq/habio"
+	"github.com/habiohq/atoha"
 )
 
 func TestAttemptClaimAndEventsSurviveReopen(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "habio.db")
+	path := filepath.Join(t.TempDir(), "atoha.db")
 	log, err := Open(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	attempt := testAttempt(t, "attempt-1")
-	event := testEvent(t, "event-1", "attempt-1", habio.EventAttemptStarted)
+	event := testEvent(t, "event-1", "attempt-1", atoha.EventAttemptStarted)
 	action := testAction(t, "action-1", "target")
 	claimed, err := log.BeginAttempt(context.Background(), action, attempt, event)
 	if err != nil || !claimed {
@@ -49,13 +49,13 @@ func TestAttemptClaimAndEventsSurviveReopen(t *testing.T) {
 }
 
 func TestConcurrentAttemptClaimHasOneWinner(t *testing.T) {
-	log, err := Open(filepath.Join(t.TempDir(), "habio.db"))
+	log, err := Open(filepath.Join(t.TempDir(), "atoha.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer log.Close()
 	attempt := testAttempt(t, "attempt-concurrent")
-	event := testEvent(t, "event-concurrent", attempt.ID(), habio.EventAttemptStarted)
+	event := testEvent(t, "event-concurrent", attempt.ID(), atoha.EventAttemptStarted)
 	action := testAction(t, "action-1", "target")
 	var winners atomic.Int32
 	var failures atomic.Int32
@@ -85,12 +85,12 @@ func TestActionIdentityCannotChangeAcrossAttempts(t *testing.T) {
 	}
 	defer log.Close()
 	firstAttempt := testAttempt(t, "attempt-1")
-	firstEvent := testEvent(t, "event-1", firstAttempt.ID(), habio.EventAttemptStarted)
+	firstEvent := testEvent(t, "event-1", firstAttempt.ID(), atoha.EventAttemptStarted)
 	if claimed, err := log.BeginAttempt(context.Background(), testAction(t, "action-1", "target-a"), firstAttempt, firstEvent); err != nil || !claimed {
 		t.Fatalf("first claim = %v, %v", claimed, err)
 	}
 	secondAttempt := testAttempt(t, "attempt-2")
-	secondEvent := testEvent(t, "event-2", secondAttempt.ID(), habio.EventAttemptStarted)
+	secondEvent := testEvent(t, "event-2", secondAttempt.ID(), atoha.EventAttemptStarted)
 	claimed, err := log.BeginAttempt(context.Background(), testAction(t, "action-1", "target-b"), secondAttempt, secondEvent)
 	if !errors.Is(err, ErrActionConflict) || claimed {
 		t.Fatalf("changed action claim = %v, %v; want action conflict", claimed, err)
@@ -107,12 +107,12 @@ func TestAppendAllConflictRollsBackWholeBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer log.Close()
-	existing := testEvent(t, "event-1", "attempt-1", habio.EventAttemptStarted)
+	existing := testEvent(t, "event-1", "attempt-1", atoha.EventAttemptStarted)
 	if err := log.Append(context.Background(), existing); err != nil {
 		t.Fatal(err)
 	}
-	newEvent := testEvent(t, "event-2", "attempt-1", habio.EventActionAdmitted)
-	conflict := testEvent(t, "event-1", "attempt-1", habio.EventActionDispatched)
+	newEvent := testEvent(t, "event-2", "attempt-1", atoha.EventActionAdmitted)
+	conflict := testEvent(t, "event-1", "attempt-1", atoha.EventActionDispatched)
 	if err := log.AppendAll(context.Background(), newEvent, conflict); !errors.Is(err, ErrEventConflict) {
 		t.Fatalf("AppendAll() error = %v; want conflict", err)
 	}
@@ -122,28 +122,28 @@ func TestAppendAllConflictRollsBackWholeBatch(t *testing.T) {
 	}
 }
 
-func testAttempt(t *testing.T, id habio.AttemptID) habio.ExecutionAttempt {
+func testAttempt(t *testing.T, id atoha.AttemptID) atoha.ExecutionAttempt {
 	t.Helper()
-	attempt, err := habio.NewExecutionAttempt(habio.ExecutionAttemptSpec{ID: id, ActionID: "action-1", StartedAt: time.Now()})
+	attempt, err := atoha.NewExecutionAttempt(atoha.ExecutionAttemptSpec{ID: id, ActionID: "action-1", StartedAt: time.Now()})
 	if err != nil {
 		t.Fatal(err)
 	}
 	return attempt
 }
 
-func testAction(t *testing.T, id habio.ActionID, target string) habio.Action {
+func testAction(t *testing.T, id atoha.ActionID, target string) atoha.Action {
 	t.Helper()
-	action, err := habio.NewAction(habio.ActionSpec{ID: id, Target: target, Name: "turn_on", RequestedAt: time.Unix(1, 0)})
+	action, err := atoha.NewAction(atoha.ActionSpec{ID: id, Target: target, Name: "turn_on", RequestedAt: time.Unix(1, 0)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	return action
 }
 
-func testEvent(t *testing.T, id habio.EventID, attemptID habio.AttemptID, kind habio.EventKind) habio.ExecutionEvent {
+func testEvent(t *testing.T, id atoha.EventID, attemptID atoha.AttemptID, kind atoha.EventKind) atoha.ExecutionEvent {
 	t.Helper()
 	now := time.Now()
-	event, err := habio.NewExecutionEvent(habio.ExecutionEventSpec{
+	event, err := atoha.NewExecutionEvent(atoha.ExecutionEventSpec{
 		ID: id, ActionID: "action-1", AttemptID: attemptID, Kind: kind, OccurredAt: now, RecordedAt: now,
 	})
 	if err != nil {

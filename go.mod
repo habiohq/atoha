@@ -1,4 +1,4 @@
-module github.com/habiohq/habio
+module github.com/habiohq/atoha
 
 go 1.22
 

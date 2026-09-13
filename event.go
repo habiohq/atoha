@@ -1,4 +1,4 @@
-package habio
+package atoha
 
 import (
 	"context"
@@ -33,7 +33,7 @@ const (
 	EventVerificationInconclusive  EventKind = "verification-inconclusive"
 )
 
-var ErrInvalidExecutionEvent = errors.New("habio: invalid execution event")
+var ErrInvalidExecutionEvent = errors.New("atoha: invalid execution event")
 
 // ExecutionEventSpec contains one immutable fact. Data is optional opaque
 // evidence and does not alter the core meaning of Kind.

@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/habiohq/habio"
-	"github.com/habiohq/habio/projection"
+	"github.com/habiohq/atoha"
+	"github.com/habiohq/atoha/projection"
 )
 
 // AttemptView is a rebuildable application query result.
 type AttemptView struct {
-	ActionID            habio.ActionID
-	AttemptID           habio.AttemptID
-	Outcome             habio.Outcome
-	Verification        habio.VerificationStatus
+	ActionID            atoha.ActionID
+	AttemptID           atoha.AttemptID
+	Outcome             atoha.Outcome
+	Verification        atoha.VerificationStatus
 	AdmissionConflicted bool
 	DispatchConflicted  bool
 	EffectConflicted    bool
@@ -29,7 +29,7 @@ func NewGetAttempt(reader AttemptEventReader) (*GetAttempt, error) {
 	return &GetAttempt{reader: reader}, nil
 }
 
-func (u *GetAttempt) Get(ctx context.Context, attemptID habio.AttemptID) (AttemptView, error) {
+func (u *GetAttempt) Get(ctx context.Context, attemptID atoha.AttemptID) (AttemptView, error) {
 	if u == nil || attemptID == "" {
 		return AttemptView{}, stageError(StageValidate, ErrInvalidInput)
 	}
@@ -60,8 +60,8 @@ func (u *GetAttempt) Get(ctx context.Context, attemptID habio.AttemptID) (Attemp
 // IncompleteAttempt identifies a claimed attempt with no terminal dispatch fact.
 // Detection is informational and never triggers automatic replay.
 type IncompleteAttempt struct {
-	ActionID  habio.ActionID  `json:"action_id"`
-	AttemptID habio.AttemptID `json:"attempt_id"`
+	ActionID  atoha.ActionID  `json:"action_id"`
+	AttemptID atoha.AttemptID `json:"attempt_id"`
 }
 
 type ScanIncompleteAttempts struct {
@@ -97,17 +97,17 @@ func (u *ScanIncompleteAttempts) Scan(ctx context.Context) ([]IncompleteAttempt,
 	return result, nil
 }
 
-func incomplete(events []habio.ExecutionEvent) (habio.ActionID, bool) {
-	var actionID habio.ActionID
+func incomplete(events []atoha.ExecutionEvent) (atoha.ActionID, bool) {
+	var actionID atoha.ActionID
 	started := false
 	finished := false
 	for _, event := range events {
 		actionID = event.ActionID()
 		switch event.Kind() {
-		case habio.EventAttemptStarted:
+		case atoha.EventAttemptStarted:
 			started = true
-		case habio.EventActionRejected, habio.EventNotDispatched, habio.EventDispatchUnknown,
-			habio.EventActionDispatched, habio.EventProviderAcknowledged:
+		case atoha.EventActionRejected, atoha.EventNotDispatched, atoha.EventDispatchUnknown,
+			atoha.EventActionDispatched, atoha.EventProviderAcknowledged:
 			finished = true
 		}
 	}

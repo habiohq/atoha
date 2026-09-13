@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/habiohq/habio"
+	"github.com/habiohq/atoha"
 )
 
 func TestAttemptReconstructsCurrentView(t *testing.T) {
@@ -12,14 +12,14 @@ func TestAttemptReconstructsCurrentView(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	kinds := []habio.EventKind{
-		habio.EventAttemptStarted,
-		habio.EventActionAdmitted,
-		habio.EventActionDispatched,
-		habio.EventProviderAcknowledged,
-		habio.EventObservationRecorded,
-		habio.EventEffectObservedSatisfied,
-		habio.EventVerificationVerified,
+	kinds := []atoha.EventKind{
+		atoha.EventAttemptStarted,
+		atoha.EventActionAdmitted,
+		atoha.EventActionDispatched,
+		atoha.EventProviderAcknowledged,
+		atoha.EventObservationRecorded,
+		atoha.EventEffectObservedSatisfied,
+		atoha.EventVerificationVerified,
 	}
 	for i, kind := range kinds {
 		if err := view.Apply(event(t, i, kind)); err != nil {
@@ -27,36 +27,36 @@ func TestAttemptReconstructsCurrentView(t *testing.T) {
 		}
 	}
 	outcome := view.Outcome()
-	if outcome.Admission() != habio.AdmissionAdmitted || outcome.Dispatch() != habio.DispatchAcknowledged || outcome.Effect() != habio.EffectObservedSatisfied {
+	if outcome.Admission() != atoha.AdmissionAdmitted || outcome.Dispatch() != atoha.DispatchAcknowledged || outcome.Effect() != atoha.EffectObservedSatisfied {
 		t.Fatalf("Outcome() = %+v; want admitted, acknowledged, observed satisfied", outcome)
 	}
-	if view.Verification() != habio.VerificationVerified || view.Conflicted() {
+	if view.Verification() != atoha.VerificationVerified || view.Conflicted() {
 		t.Fatalf("verification=%v conflicted=%v", view.Verification(), view.Conflicted())
 	}
 }
 
 func TestAttemptDoesNotRegressOnOutOfOrderDispatchEvidence(t *testing.T) {
 	view, _ := NewAttempt("action-1", "attempt-1")
-	if err := view.Apply(event(t, 1, habio.EventProviderAcknowledged)); err != nil {
+	if err := view.Apply(event(t, 1, atoha.EventProviderAcknowledged)); err != nil {
 		t.Fatal(err)
 	}
-	if err := view.Apply(event(t, 2, habio.EventActionDispatched)); err != nil {
+	if err := view.Apply(event(t, 2, atoha.EventActionDispatched)); err != nil {
 		t.Fatal(err)
 	}
-	if got := view.Outcome().Dispatch(); got != habio.DispatchAcknowledged {
+	if got := view.Outcome().Dispatch(); got != atoha.DispatchAcknowledged {
 		t.Fatalf("Dispatch() = %v; weaker late fact regressed acknowledgement", got)
 	}
 }
 
 func TestAttemptMakesContradictoryDispatchUnknown(t *testing.T) {
 	view, _ := NewAttempt("action-1", "attempt-1")
-	if err := view.Apply(event(t, 1, habio.EventNotDispatched)); err != nil {
+	if err := view.Apply(event(t, 1, atoha.EventNotDispatched)); err != nil {
 		t.Fatal(err)
 	}
-	if err := view.Apply(event(t, 2, habio.EventProviderAcknowledged)); err != nil {
+	if err := view.Apply(event(t, 2, atoha.EventProviderAcknowledged)); err != nil {
 		t.Fatal(err)
 	}
-	if got := view.Outcome().Dispatch(); got != habio.DispatchUnknown || !view.Conflicted() {
+	if got := view.Outcome().Dispatch(); got != atoha.DispatchUnknown || !view.Conflicted() {
 		t.Fatalf("Dispatch()=%v conflicted=%v; want unknown conflict", got, view.Conflicted())
 	}
 }
@@ -64,37 +64,37 @@ func TestAttemptMakesContradictoryDispatchUnknown(t *testing.T) {
 func TestAttemptKeepsConflictedDimensionsUnknown(t *testing.T) {
 	tests := []struct {
 		name       string
-		kinds      []habio.EventKind
-		got        func(habio.Outcome) string
+		kinds      []atoha.EventKind
+		got        func(atoha.Outcome) string
 		conflicted func(*Attempt) bool
 		want       string
 	}{
 		{
 			name:  "admission",
-			kinds: []habio.EventKind{habio.EventActionAdmitted, habio.EventActionRejected, habio.EventActionAdmitted},
-			got:   func(outcome habio.Outcome) string { return outcome.Admission().String() },
+			kinds: []atoha.EventKind{atoha.EventActionAdmitted, atoha.EventActionRejected, atoha.EventActionAdmitted},
+			got:   func(outcome atoha.Outcome) string { return outcome.Admission().String() },
 			conflicted: func(view *Attempt) bool {
 				return view.AdmissionConflicted() && !view.DispatchConflicted() && !view.EffectConflicted()
 			},
-			want: habio.AdmissionUnknown.String(),
+			want: atoha.AdmissionUnknown.String(),
 		},
 		{
 			name:  "dispatch",
-			kinds: []habio.EventKind{habio.EventNotDispatched, habio.EventProviderAcknowledged, habio.EventActionDispatched},
-			got:   func(outcome habio.Outcome) string { return outcome.Dispatch().String() },
+			kinds: []atoha.EventKind{atoha.EventNotDispatched, atoha.EventProviderAcknowledged, atoha.EventActionDispatched},
+			got:   func(outcome atoha.Outcome) string { return outcome.Dispatch().String() },
 			conflicted: func(view *Attempt) bool {
 				return !view.AdmissionConflicted() && view.DispatchConflicted() && !view.EffectConflicted()
 			},
-			want: habio.DispatchUnknown.String(),
+			want: atoha.DispatchUnknown.String(),
 		},
 		{
 			name:  "effect",
-			kinds: []habio.EventKind{habio.EventEffectObservedSatisfied, habio.EventEffectObservedUnsatisfied, habio.EventEffectObservedSatisfied},
-			got:   func(outcome habio.Outcome) string { return outcome.Effect().String() },
+			kinds: []atoha.EventKind{atoha.EventEffectObservedSatisfied, atoha.EventEffectObservedUnsatisfied, atoha.EventEffectObservedSatisfied},
+			got:   func(outcome atoha.Outcome) string { return outcome.Effect().String() },
 			conflicted: func(view *Attempt) bool {
 				return !view.AdmissionConflicted() && !view.DispatchConflicted() && view.EffectConflicted()
 			},
-			want: habio.EffectUnknown.String(),
+			want: atoha.EffectUnknown.String(),
 		},
 	}
 	for _, tt := range tests {
@@ -114,8 +114,8 @@ func TestAttemptKeepsConflictedDimensionsUnknown(t *testing.T) {
 
 func TestAttemptRejectsUnrelatedEvents(t *testing.T) {
 	view, _ := NewAttempt("action-1", "attempt-1")
-	e := event(t, 1, habio.EventAttemptStarted)
-	other, err := habio.NewExecutionEvent(habio.ExecutionEventSpec{
+	e := event(t, 1, atoha.EventAttemptStarted)
+	other, err := atoha.NewExecutionEvent(atoha.ExecutionEventSpec{
 		ID: e.ID(), ActionID: "other-action", AttemptID: e.AttemptID(), Kind: e.Kind(),
 		OccurredAt: e.OccurredAt(), RecordedAt: e.RecordedAt(),
 	})
@@ -127,11 +127,11 @@ func TestAttemptRejectsUnrelatedEvents(t *testing.T) {
 	}
 }
 
-func event(t *testing.T, n int, kind habio.EventKind) habio.ExecutionEvent {
+func event(t *testing.T, n int, kind atoha.EventKind) atoha.ExecutionEvent {
 	t.Helper()
 	now := time.Date(2026, time.September, 6, 11, 0, n, 0, time.UTC)
-	event, err := habio.NewExecutionEvent(habio.ExecutionEventSpec{
-		ID:       habio.EventID("event-" + string(rune('a'+n))),
+	event, err := atoha.NewExecutionEvent(atoha.ExecutionEventSpec{
+		ID:       atoha.EventID("event-" + string(rune('a'+n))),
 		ActionID: "action-1", AttemptID: "attempt-1", Kind: kind,
 		OccurredAt: now, RecordedAt: now,
 	})

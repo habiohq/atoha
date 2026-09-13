@@ -1,7 +1,7 @@
 # RFC 0006: Portable Strategy boundary
 
 - Status: Accepted
-- Authors: Habio maintainers
+- Authors: Atoha maintainers
 - Created: 2026-09-06
 - Related issues: #8
 
@@ -16,11 +16,11 @@ global taxonomy, conflict policy, and marketplace outside this decision.
 
 A Strategy containing Home Assistant entity IDs, vehicle identifiers, vendor
 accounts, or household-specific data cannot move between installations. A
-Strategy that dispatches directly bypasses Habio's admission and execution
+Strategy that dispatches directly bypasses Atoha's admission and execution
 evidence. Running an LLM for every control decision weakens determinism and
 auditability.
 
-The contract must preserve portability without asking Habio core to standardize
+The contract must preserve portability without asking Atoha core to standardize
 all physical capabilities.
 
 ## Proposal
@@ -39,7 +39,7 @@ AI-generated Strategies are drafts. Schema validation, simulation, permission
 review, binding review, and explicit user approval precede execution. The
 approved immutable artifact is evaluated deterministically and produces Action
 proposals. The application, not the Strategy, assigns Action identity, handles
-admission/conflicts, and asks Habio to execute.
+admission/conflicts, and asks Atoha to execute.
 
 The serialization example in `docs/strategy-contract.md` is non-normative. A
 runtime and sandbox format require a later evidence-backed RFC.
@@ -54,7 +54,7 @@ policy until resource-claim and conflict semantics are accepted separately.
 Simple for one household but not portable and risks credential leakage.
 Rejected.
 
-### Universal Habio capability taxonomy
+### Universal Atoha capability taxonomy
 
 This competes with hardware platforms and grows core with every vertical.
 Rejected. Vocabulary remains package-local until interoperable conventions are

@@ -1,8 +1,8 @@
-# Habio design
+# Atoha design
 
 ## Purpose
 
-Habio owns the action boundary: the point at which an intent crosses into a
+Atoha owns the action boundary: the point at which an intent crosses into a
 physical execution system and produces incomplete, delayed, or contradictory
 evidence about the result. Its job is to report that evidence without inventing
 certainty.
@@ -89,9 +89,9 @@ physical knowledge separately from transport or implementation errors.
 
 ## Ambiguity and recovery
 
-If a request times out after dispatch, Habio may be unable to distinguish among
+If a request times out after dispatch, Atoha may be unable to distinguish among
 non-arrival, acceptance without execution, execution, and execution with a lost
-response. The honest result is unknown. Habio must not automatically map this
+response. The honest result is unknown. Atoha must not automatically map this
 case to failed and retry it.
 
 Recovery belongs to an explicit caller decision informed by evidence and replay
@@ -128,7 +128,7 @@ See [docs/extension-model.md](docs/extension-model.md).
 
 ## Enforcement without policy ownership
 
-Habio owns the point at which an action may be admitted, but not the policy
+Atoha owns the point at which an action may be admitted, but not the policy
 itself. Authorization, confirmation, safety bounds, energy constraints, and
 domain rules are supplied by the application or extensions.
 
@@ -140,7 +140,7 @@ Strategies consume data and produce typed Actions. The execution core does not
 know their business logic:
 
 ```text
-data sources -> strategy -> typed Action -> Habio -> provider -> physical world
+data sources -> strategy -> typed Action -> Atoha -> provider -> physical world
 ```
 
 Natural-language strategy authoring, simulation, portability, binding,

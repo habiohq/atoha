@@ -1,7 +1,7 @@
 # RFC 0005: Event log and projection
 
 - Status: Accepted
-- Authors: Habio maintainers
+- Authors: Atoha maintainers
 - Created: 2026-09-06
 - Related issues: #6
 
@@ -14,7 +14,7 @@ small in-memory reference log and attempt projection in v0.1.
 ## Motivation
 
 Mutating one status value loses late, contradictory, and independently sourced
-evidence. Habio needs facts for audit and reconstruction, but adopting a broker
+evidence. Atoha needs facts for audit and reconstruction, but adopting a broker
 or full event-sourcing platform before validating the facts would grow the core
 around infrastructure rather than semantics.
 
@@ -39,7 +39,7 @@ defines no implicit conflict resolution rule. The projection exposes both an
 aggregate conflict flag and flags for each outcome dimension.
 
 OccurredAt reflects when the source says the fact occurred. RecordedAt reflects
-Habio ingestion. Neither timestamp by itself defines distributed total order.
+Atoha ingestion. Neither timestamp by itself defines distributed total order.
 
 ## Alternatives
 

@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/habiohq/habio"
+	"github.com/habiohq/atoha"
 )
 
 func TestAppendIsIdempotentAndAppendOnly(t *testing.T) {
 	log := New()
-	event := mustEvent(t, "event-1", habio.EventAttemptStarted)
+	event := mustEvent(t, "event-1", atoha.EventAttemptStarted)
 	if err := log.Append(context.Background(), event); err != nil {
 		t.Fatal(err)
 	}
@@ -22,9 +22,9 @@ func TestAppendIsIdempotentAndAppendOnly(t *testing.T) {
 		t.Fatalf("len(Events()) = %d; want 1", got)
 	}
 
-	conflict, err := habio.NewExecutionEvent(habio.ExecutionEventSpec{
+	conflict, err := atoha.NewExecutionEvent(atoha.ExecutionEventSpec{
 		ID: "event-1", ActionID: "action-1", AttemptID: "attempt-1",
-		Kind: habio.EventActionDispatched, OccurredAt: event.OccurredAt(), RecordedAt: event.RecordedAt(),
+		Kind: atoha.EventActionDispatched, OccurredAt: event.OccurredAt(), RecordedAt: event.RecordedAt(),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -32,17 +32,17 @@ func TestAppendIsIdempotentAndAppendOnly(t *testing.T) {
 	if err := log.Append(context.Background(), conflict); !errors.Is(err, ErrEventConflict) {
 		t.Fatalf("conflicting duplicate error = %v; want ErrEventConflict", err)
 	}
-	if log.Events()[0].Kind() != habio.EventAttemptStarted {
+	if log.Events()[0].Kind() != atoha.EventAttemptStarted {
 		t.Fatal("conflicting duplicate replaced an append-only fact")
 	}
 }
 
 func TestAppendPreservesCanonicalDeliveryOrder(t *testing.T) {
 	log := New()
-	laterOccurred := mustEvent(t, "event-later", habio.EventActionDispatched)
-	earlierOccurred, err := habio.NewExecutionEvent(habio.ExecutionEventSpec{
+	laterOccurred := mustEvent(t, "event-later", atoha.EventActionDispatched)
+	earlierOccurred, err := atoha.NewExecutionEvent(atoha.ExecutionEventSpec{
 		ID: "event-earlier", ActionID: "action-1", AttemptID: "attempt-1",
-		Kind:       habio.EventActionAdmitted,
+		Kind:       atoha.EventActionAdmitted,
 		OccurredAt: laterOccurred.OccurredAt().Add(-time.Minute), RecordedAt: laterOccurred.RecordedAt().Add(time.Second),
 	})
 	if err != nil {
@@ -63,14 +63,14 @@ func TestAppendPreservesCanonicalDeliveryOrder(t *testing.T) {
 func TestBeginAttemptClaimsOnceAndAppendsAtomically(t *testing.T) {
 	log := New()
 	now := time.Now()
-	attempt, err := habio.NewExecutionAttempt(habio.ExecutionAttemptSpec{
+	attempt, err := atoha.NewExecutionAttempt(atoha.ExecutionAttemptSpec{
 		ID: "attempt-1", ActionID: "action-1", StartedAt: now,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	started := mustEvent(t, "event-started", habio.EventAttemptStarted)
-	action, _ := habio.NewAction(habio.ActionSpec{ID: "action-1", Target: "target", Name: "name", RequestedAt: now})
+	started := mustEvent(t, "event-started", atoha.EventAttemptStarted)
+	action, _ := atoha.NewAction(atoha.ActionSpec{ID: "action-1", Target: "target", Name: "name", RequestedAt: now})
 	claimed, err := log.BeginAttempt(context.Background(), action, attempt, started)
 	if err != nil || !claimed {
 		t.Fatalf("BeginAttempt() = (%v, %v); want (true, nil)", claimed, err)
@@ -84,8 +84,8 @@ func TestBeginAttemptClaimsOnceAndAppendsAtomically(t *testing.T) {
 		t.Fatalf("attempt IDs/events = %v/%d; want one of each", ids, len(log.Events()))
 	}
 
-	conflicting := mustEvent(t, "event-started", habio.EventActionDispatched)
-	other, _ := habio.NewExecutionAttempt(habio.ExecutionAttemptSpec{
+	conflicting := mustEvent(t, "event-started", atoha.EventActionDispatched)
+	other, _ := atoha.NewExecutionAttempt(atoha.ExecutionAttemptSpec{
 		ID: "attempt-2", ActionID: "action-1", StartedAt: now,
 	})
 	claimed, err = log.BeginAttempt(context.Background(), action, other, conflicting)
@@ -100,9 +100,9 @@ func TestBeginAttemptClaimsOnceAndAppendsAtomically(t *testing.T) {
 
 func TestAppendAllRejectsWholeConflictingBatch(t *testing.T) {
 	log := New()
-	first := mustEvent(t, "event-1", habio.EventAttemptStarted)
-	conflict := mustEvent(t, "event-1", habio.EventActionDispatched)
-	second := mustEvent(t, "event-2", habio.EventActionAdmitted)
+	first := mustEvent(t, "event-1", atoha.EventAttemptStarted)
+	conflict := mustEvent(t, "event-1", atoha.EventActionDispatched)
+	second := mustEvent(t, "event-2", atoha.EventActionAdmitted)
 	if err := log.AppendAll(context.Background(), first, conflict, second); !errors.Is(err, ErrEventConflict) {
 		t.Fatalf("AppendAll() error = %v; want ErrEventConflict", err)
 	}
@@ -114,27 +114,27 @@ func TestAppendAllRejectsWholeConflictingBatch(t *testing.T) {
 func TestBeginAttemptRejectsChangedActionIdentity(t *testing.T) {
 	log := New()
 	now := time.Now()
-	firstAction, _ := habio.NewAction(habio.ActionSpec{ID: "action-1", Target: "target-a", Name: "name", RequestedAt: now})
-	secondAction, _ := habio.NewAction(habio.ActionSpec{ID: "action-1", Target: "target-b", Name: "name", RequestedAt: now})
-	firstAttempt, _ := habio.NewExecutionAttempt(habio.ExecutionAttemptSpec{ID: "attempt-1", ActionID: "action-1", StartedAt: now})
-	secondAttempt, _ := habio.NewExecutionAttempt(habio.ExecutionAttemptSpec{ID: "attempt-2", ActionID: "action-1", StartedAt: now})
-	if claimed, err := log.BeginAttempt(context.Background(), firstAction, firstAttempt, mustEvent(t, "event-1", habio.EventAttemptStarted)); err != nil || !claimed {
+	firstAction, _ := atoha.NewAction(atoha.ActionSpec{ID: "action-1", Target: "target-a", Name: "name", RequestedAt: now})
+	secondAction, _ := atoha.NewAction(atoha.ActionSpec{ID: "action-1", Target: "target-b", Name: "name", RequestedAt: now})
+	firstAttempt, _ := atoha.NewExecutionAttempt(atoha.ExecutionAttemptSpec{ID: "attempt-1", ActionID: "action-1", StartedAt: now})
+	secondAttempt, _ := atoha.NewExecutionAttempt(atoha.ExecutionAttemptSpec{ID: "attempt-2", ActionID: "action-1", StartedAt: now})
+	if claimed, err := log.BeginAttempt(context.Background(), firstAction, firstAttempt, mustEvent(t, "event-1", atoha.EventAttemptStarted)); err != nil || !claimed {
 		t.Fatalf("first claim = %v, %v", claimed, err)
 	}
-	claimed, err := log.BeginAttempt(context.Background(), secondAction, secondAttempt, mustEventForAttempt(t, "event-2", "attempt-2", habio.EventAttemptStarted))
+	claimed, err := log.BeginAttempt(context.Background(), secondAction, secondAttempt, mustEventForAttempt(t, "event-2", "attempt-2", atoha.EventAttemptStarted))
 	if !errors.Is(err, ErrActionConflict) || claimed {
 		t.Fatalf("changed action claim = %v, %v; want action conflict", claimed, err)
 	}
 }
 
-func mustEvent(t *testing.T, id habio.EventID, kind habio.EventKind) habio.ExecutionEvent {
+func mustEvent(t *testing.T, id atoha.EventID, kind atoha.EventKind) atoha.ExecutionEvent {
 	return mustEventForAttempt(t, id, "attempt-1", kind)
 }
 
-func mustEventForAttempt(t *testing.T, id habio.EventID, attemptID habio.AttemptID, kind habio.EventKind) habio.ExecutionEvent {
+func mustEventForAttempt(t *testing.T, id atoha.EventID, attemptID atoha.AttemptID, kind atoha.EventKind) atoha.ExecutionEvent {
 	t.Helper()
 	now := time.Now()
-	event, err := habio.NewExecutionEvent(habio.ExecutionEventSpec{
+	event, err := atoha.NewExecutionEvent(atoha.ExecutionEventSpec{
 		ID: id, ActionID: "action-1", AttemptID: attemptID, Kind: kind,
 		OccurredAt: now, RecordedAt: now,
 	})
